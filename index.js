@@ -24,37 +24,8 @@ const OWNER_LABEL = {
   '1122942626702827621': 'hayhay lunar bey'
 };
 
-// Sohbet liderliği kanalı + !salla izinli kanallar
+// Sohbet liderliği kanalı
 const SOHBET_KANAL_ID = '1413929200817148104';
-const SALLA_ALLOWED_CHANNELS = new Set([
-  '1413929200817148104',
-  '1268595926226829404',
-  '1268595980727746574'
-]);
-
-// !salla metinleri (20 adet)
-const SALLA_TEXTS = [
-  'Biliyor muydun? Zürafalar, kulaklarını temizlemek için kendi dillerini kullanabilirler. Bu, yaklaşık 50 cm\'lik biyolojik bir kulak çubuğu demek.',
-  'Ortalama bir insan hayatı boyunca, sadece yastığının altına düşen uzak kumandaların sayısını saysa, bir daha uyuyamazdı.',
-  'Eğer tüm kağıt ataçları uç uca eklenseydi, muhtemelen kimse neden bu kadar çok kağıt ataç biriktirdiğimizi sorgulamazdı.',
-  'Bir ördek sesi yankı yapmaz. Bilim insanları bunun nedenini biliyor ama sana söylemiyorlar. (Büyük bir ördek komplosu!)',
-  'Tavuklar, tehlike hissettiklerinde, 3 saniyeliğine geçmişe ışınlanma yeteneğine sahiptir. Genelde sadece 3 saniye geri giderler, bu yüzden kimse fark etmez.',
-  'Tokyo\'daki bir araştırma, kedilerin aslında dünyanın en iyi gizlenmiş ninja klanı olduğunu ortaya çıkardı. O kadar sessizler ki!',
-  'Gezegenimizdeki karıncaların toplam ağırlığı, tüm insanların toplam ağırlığından daha fazladır. Yani teknik olarak karıncalar bizi taşıyor.',
-  'Peynir, gece yenirse tuhaf rüyalar görme olasılığını ciddi oranda artırır. Özellikle de "koşan turp" rüyaları.',
-  'Bir bulut, ortalama olarak bir filler sürüsü kadar ağırdır. Sadece havada asılı kalma konusunda bizden daha iyiler.',
-  'Muzlar aslında meyve değil, ottur. Yani sabah kahvaltısında "meyve" yiyorum derken, teknik olarak "uzun boylu ot" yiyorsun.',
-  'Bir salyangoz, arka arkaya üç yıla kadar uyuyabilir. Çünkü bazen tüm o sümük izlerini temizlemek yorucu olabiliyor.',
-  'Eğer bir yengeç seni işaret ederse, bunun anlamı "Şşşt... Senin ayakkabının bağı çözülmüş!" demektir.',
-  'Ortalama bir insan, hayatının altı ayını sadece televizyon kumandasını arayarak geçirir. Ve genelde kanepenin altından çıkar.',
-  'İngiltere\'de, yünlü bir ceket giyen koyun hırsızlarının cezası, ceketin içinde gün batımına kadar bekleme zorunluluğuydu.',
-  'Bir timsah, dilini dışarı çıkaramaz. Muhtemelen bu yüzden her zaman sinirli görünüyorlar.',
-  'Dünyadaki her dördüncü insandan biri, tuvalette telefonunu düşürme korkusuyla yaşıyor. Diğer üçü ise çoktan düşürdü.',
-  'Bir karidesin kalbi kafasında bulunur. Bu da demek oluyor ki, "kalbim kafamda" dediğinde, sadece karides gibi hissediyorsun.',
-  'Gözleriniz, her zaman burnunuzun bir kısmını görür, ama beyniniz bunu görmezden gelmek üzere eğitilmiştir. (Şimdi fark ettin, değil mi?)',
-  'İnsanların ortalama olarak %10\'u, her gece bir süper kahraman olduklarını rüyalarında görüyor. Sabah uyandıklarında ise yine sadece yorgunlar.',
-  'Eğer sabahları uyandığınızda ne kadar yorgun olduğunuzu düşünen bir bot olsaydım, muhtemelen size bir kupa kahve emojisi gönderirdim. ☕'
-];
 
 // Küçük yardımcılar
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
@@ -142,11 +113,16 @@ client.on('messageCreate', async (message) => {
   }
 
   // ----------- KOMUTLAR -----------
-  // !salla (sadece izinli kanallar)
-  if (txt === '!salla') {
-    if (!cid || !SALLA_ALLOWED_CHANNELS.has(cid)) return; // izinli değilse sessizce yok say
+  // !salla (TÜM KANALLARDA)
+  if (txt.startsWith('!salla')) {
     const pick = SALLA_TEXTS[Math.floor(Math.random() * SALLA_TEXTS.length)];
     return void message.reply(pick);
+  }
+
+  // 🎲 Yazı Tura (EKLENDİ)
+  if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
+    const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
+    return void message.reply(`${sonuc} 🎲`);
   }
 
   // Ses Liderliği
@@ -263,3 +239,4 @@ process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
 
 // ====================== LOGIN =================================
 client.login(process.env.TOKEN);
+
