@@ -27,6 +27,9 @@ const OWNER_LABEL = {
   '1122942626702827621': 'hayhay lunar bey'
 };
 
+// 👉 Gay/Lez sorusu için görsel
+const ORIENTATION_PHOTO_URL = 'https://i.kym-cdn.com/photos/images/newsfeed/003/107/283/053.jpg';
+
 // Sohbet liderliği kanalı
 const SOHBET_KANAL_ID = '1413929200817148104';
 
@@ -400,13 +403,23 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 
   // ----------- BOT MENTION -----------
   if (message.mentions.users.has(client.user.id)) {
-    if (txt.includes('teşekkürler sen'))     return void message.reply('iyiyim teşekkürler babuş👻');
-    if (txt.includes('teşekkürler'))         return void message.reply('rica ederim babuş👻');
-    if (txt.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
-    if (txt.includes('naber babuş'))         return void message.reply('iyiyim sen babuş👻');
-    if (txt.includes('eyw iyiyim') || txt.includes('eyvallah iyiyim')) return void message.reply('süper hep iyi ol ⭐');
-    if (/(günaydın|gunaydin)/.test(txt))     return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
-    if (/(iyi akşamlar|iyi aksamlar)/.test(txt)) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
+
+    // 👉 Gay / Lez sorusu — TR küçük/büyük ve ı/i varyantlarını yakala
+    const lc = message.content.toLocaleLowerCase('tr');
+    if (/(gay ?m[iı]sin|gaym[iı]s[iı]n|lez ?m[iı]sin|lezbiyen ?m[iı]sin|lezm[iı]s[iı]n)/i.test(lc)) {
+      return void message.reply({
+        content: 'hmmmm… düşünmem lazım 😶‍🌫️ sanırım gayım… ne bileyim ben 🤔',
+        files: [ORIENTATION_PHOTO_URL]
+      });
+    }
+
+    if (lc.includes('teşekkürler sen'))     return void message.reply('iyiyim teşekkürler babuş👻');
+    if (lc.includes('teşekkürler'))         return void message.reply('rica ederim babuş👻');
+    if (lc.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
+    if (lc.includes('naber babuş'))         return void message.reply('iyiyim sen babuş👻');
+    if (lc.includes('eyw iyiyim') || lc.includes('eyvallah iyiyim')) return void message.reply('süper hep iyi ol ⭐');
+    if (/(günaydın|gunaydin)/.test(lc))     return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
+    if (/(iyi akşamlar|iyi aksamlar)/.test(lc)) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
 
     const onlyMention = message.content.replace(/<@!?\d+>/g, '').trim().length === 0;
     if (onlyMention) return void message.reply('naber babuş 👻');
