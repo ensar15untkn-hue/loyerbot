@@ -33,6 +33,9 @@ const SOHBET_KANAL_ID = '1413929200817148104';
 // Komut kanalı kısıtı (ban/mute/Yetkili Yardım burada çalışır)
 const COMMAND_CHANNEL_ID = '1268595915476959312';
 
+// 🔔 Rehberin otomatik gönderileceği kanal
+const GUIDE_CHANNEL_ID = '1268595894777938043';
+
 // Mute kullanabilen roller (owner her zaman kullanabilir)
 const MUTE_ALLOWED_ROLES = new Set([
   '1268595623012208731',
@@ -154,7 +157,7 @@ client.on('messageCreate', async (message) => {
   // ----------- ÜYE YARDIM (her yerde) -----------
   if (txt === '!yardım' || txt === '!yardim') {
     const helpText = `
-📘 **Babuş'un Komut Rehberi (Üye)**
+📘 **Fang Yuan Bot'un Komut Rehberi (Üye)**
 
 🎭 **!espiri** — Sana rastgele komik ve bilgilendirici bir espri söyler.
 🪙 **!yazıtura** — Yazı mı Tura mı? Şansını dene babuş!
@@ -162,9 +165,9 @@ client.on('messageCreate', async (message) => {
 🎙️ **!ses** — Sunucuda en çok seste kalanların listesi.
 🎧 **!sesme** — Senin toplam seste kalma süreni gösterir.
 💬 **!sohbet** — Sohbet kanalında en çok yazanları gösterir.
-👻 **@bot** — Etiketlersen seninle konuşur. “@bot naber babuş” falan yaz, keyfine bak.
-☀️ **@bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.
-🌙 **@bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).
+👻 **@Fang Yuan Bot** — Etiketlersen seninle konuşur. “@Fang Yuan Bot naber babuş” falan yaz, keyfine bak.
+☀️ **@Fang Yuan Bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.
+🌙 **@Fang Yuan Bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).
 
 🔒 Owner komutlarını boşver babuş, onlar teknik işler 😏
 `;
@@ -460,7 +463,7 @@ client.on('channelDelete', async (channel) => {
 });
 
 // ====================== READY / HATA LOG =======================
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ Bot aktif: ${client.user.tag}`);
   // Durum: Oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
   client.user.setPresence({
@@ -470,7 +473,45 @@ client.once('ready', () => {
     }],
     status: 'online'
   });
+
+  // 🔔 ÜYE REHBERİ MESAJI — bot açıldığında otomatik gönder
+  try {
+    const channel = await client.channels.fetch(GUIDE_CHANNEL_ID).catch(() => null);
+    if (channel) {
+      const guide = `
+🐉 **Fang Yuan Bot • Üye Rehberi**
+
+Selam dostum 👋  
+Ben **Fang Yuan Bot**, sunucunun sessiz ama her şeyi duyan bilgesi!  
+Hem sohbet ederim hem de eğlendiririm — ama bazen öyle laflar ederim ki, “bu bot fazla yaşlı” dersin 😏  
+
+🧠 **Benimle Sohbet Etmeyi Öğren**
+@Fang Yuan Bot → “naber babuş 👻”  
+@Fang Yuan Bot günaydın → “Günaydın babuş ☀️ yüzünü yıkamayı unutma!”  
+@Fang Yuan Bot iyi akşamlar → “İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏”  
+
+🎲 **Eğlenceli Komutlar**
+!espiri — Komik bilgi + espri  
+!yazıtura — Yazı mı Tura mı?  
+!zar üst / !zar alt — Zar tahmini  
+
+🎧 **İstatistik Komutları**
+!ses — En çok seste kalanları listeler  
+!sesme — Kendi süreni gösterir  
+!sohbet — En çok mesaj atanları listeler  
+
+💡 **Not:**  
+Geliştirilmeye açık bir botum, fikirlerin varsa geliştiricim <@923263340325781515> (sagimokhtari) ile iletişime geç 💫`;
+      await channel.send(guide);
+      console.log('📘 Üye rehberi mesajı gönderildi!');
+    } else {
+      console.warn('⚠️ Rehber gönderilecek kanal bulunamadı.');
+    }
+  } catch (e) {
+    console.error('Rehber mesajı gönderilemedi:', e);
+  }
 });
+
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
 
