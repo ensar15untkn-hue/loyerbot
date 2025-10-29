@@ -64,6 +64,9 @@ const mKey = (gid, cid, uid) => `${gid}:${cid}:${uid}`;
 
 // ====================== REPLY ÖZEL CEVAPLAR ====================
 async function handleReplyReactions(message) {
+  // Mention geldiyse bu fonksiyon çalışmasın (çift yanıtı önler)
+  if (message.mentions?.users?.has?.(client.user.id)) return;
+
   const refId = message.reference?.messageId;
   if (!refId) return;
 
@@ -93,6 +96,14 @@ client.on('messageCreate', async (message) => {
     messageCount.set(k, (messageCount.get(k) || 0) + 1);
   }
 
+  // ----------- KOMUTLAR (ÖNCE) -----------
+  // === !salla KOMUTU (TÜM KANALLAR) ===
+  // Kullanım: !salla
+  if (txt.trim() === '!salla') {
+    const pick = SALLA_TEXTS[Math.floor(Math.random() * SALLA_TEXTS.length)];
+    return void message.reply(pick);
+  }
+  
   // Bota YANIT özel cevapları (selam YOK)
   await handleReplyReactions(message);
 
@@ -113,12 +124,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ----------- KOMUTLAR -----------
-  // !salla (TÜM KANALLARDA)
-  if (txt.startsWith('!salla')) {
-    const pick = SALLA_TEXTS[Math.floor(Math.random() * SALLA_TEXTS.length)];
-    return void message.reply(pick);
-  }
-
+  
   // 🎲 Yazı Tura (EKLENDİ)
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
@@ -239,4 +245,5 @@ process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
 
 // ====================== LOGIN =================================
 client.login(process.env.TOKEN);
+
 
