@@ -27,6 +27,25 @@ const OWNER_LABEL = {
 // Sohbet liderliği kanalı
 const SOHBET_KANAL_ID = '1413929200817148104';
 
+// !espiri metinleri (15 adet) — bilgilendirici ama komik
+const ESPIRI_TEXTS = [
+  'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
+  'Bir balinanın kalbi insan kadar ağır olabilir. Yani kalbi kırılan tek tür biz değiliz.',
+  'Işık sesten hızlıdır; o yüzden bazı insanlar parlak görünür ama konuşunca her şey ortaya çıkar.',
+  'Arılar dans ederek haberleşir. Ben de kahve içince benzer bir protokole geçiyorum: titreyerek anlaşıyorum.',
+  'Mars’ta gün 24 saat 39 dakikadır. Yani geç kalmalarım bilimsel temellidir hocam.',
+  'İnsan beyni günde yaklaşık 60 bin düşünce üretir. Benimkiler genelde “şifre neydi?” ile meşgul.',
+  'Ahtapotların üç kalbi vardır. Benimki ise fatura gününde üç kez duruyor.',
+  'Kediler günde 12–16 saat uyur. Verimlilik tanrıları şu an gözyaşı döküyor.',
+  'Muzlar hafif radyoaktiftir; en tehlikelisi ısırıldığında biten potasyum olabilir.',
+  'Satürn suya konsa yüzerdi. Keşke bütçem de bu kadar hafif olsa.',
+  'Tavuklar insan yüzlerini ayırt edebilir. Market çıkışında indirimi kim yakalamış, biliyorlar.',
+  'Şimşek, Güneş yüzeyinden daha sıcaktır. Ama elektrik faturasını görünce ben soğuyorum.',
+  'Sümüklüböceklerin tuzla arası iyi değildir. Benim de ay sonuyla.',
+  'Yunuslar isimleriyle çağrılabilir. Benim çağrıma sadece Wi‑Fi cevap veriyor.',
+  'Yıldızlar gördüğünde geçmişi görürsün. Spor salonunda da geçmiş formumu arıyorum.'
+];
+
 // Küçük yardımcılar
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 
@@ -97,13 +116,18 @@ client.on('messageCreate', async (message) => {
   }
 
   // ----------- KOMUTLAR (ÖNCE) -----------
-  // === !salla KOMUTU (TÜM KANALLAR) ===
-  // Kullanım: !salla
-  if (txt.trim() === '!salla') {
-    const pick = SALLA_TEXTS[Math.floor(Math.random() * SALLA_TEXTS.length)];
-    return void message.reply(pick);
+  // !espiri (tüm kanallar) — 15 espriden 1 tanesini söyler
+  if (txt.trim() === '!espiri') {
+    const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
+    return void message.reply(joke);
   }
-  
+
+  // 🎲 Yazı Tura
+  if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
+    const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
+    return void message.reply(`${sonuc} 🎲`);
+  }
+
   // Bota YANIT özel cevapları (selam YOK)
   await handleReplyReactions(message);
 
@@ -115,6 +139,8 @@ client.on('messageCreate', async (message) => {
     if (txt.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
     if (txt.includes('naber babuş'))         return void message.reply('iyiyim sen babuş👻');
     if (txt.includes('eyw iyiyim') || txt.includes('eyvallah iyiyim')) return void message.reply('süper hep iyi ol ⭐');
+    if (txt.includes('gunaydın') || txt.includes('günaydın')) return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
+    if (txt.includes('iyi akşamlar')) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
 
     // Sadece @bot yazıldıysa (başka metin yoksa) "naber babuş 👻" — her seferinde
     const onlyMention = message.content.replace(/<@!?\d+>/g, '').trim().length === 0;
@@ -123,14 +149,7 @@ client.on('messageCreate', async (message) => {
     // Mention + metin var ama özel cümle yoksa: sessiz
   }
 
-  // ----------- KOMUTLAR -----------
-  
-  // 🎲 Yazı Tura (EKLENDİ)
-  if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
-    const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
-    return void message.reply(`${sonuc} 🎲`);
-  }
-
+  // ----------- KOMUTLAR (DEVAM) -----------
   // Ses Liderliği
   if (txt === '!ses') {
     if (!gid) return;
