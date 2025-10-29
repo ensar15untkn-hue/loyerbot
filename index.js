@@ -1,6 +1,9 @@
 // ====================== GEREKLİ MODÜLLER ======================
 const express = require('express');
-const { Client, GatewayIntentBits, AuditLogEvent } = require('discord.js');
+const {
+  Client, GatewayIntentBits, AuditLogEvent,
+  ActivityType, PermissionFlagsBits
+} = require('discord.js');
 
 // ====================== WEB SUNUCUSU (Render) =================
 const app = express();
@@ -27,7 +30,24 @@ const OWNER_LABEL = {
 // Sohbet liderliği kanalı
 const SOHBET_KANAL_ID = '1413929200817148104';
 
-// !espiri metinleri (30 adet) — bilgilendirici ama komik
+// Komut kanalı kısıtı (ban/mute/Yetkili Yardım burada çalışır)
+const COMMAND_CHANNEL_ID = '1268595915476959312';
+
+// Mute kullanabilen roller (owner her zaman kullanabilir)
+const MUTE_ALLOWED_ROLES = new Set([
+  '1268595623012208731',
+  '1268595624211906684'
+]);
+
+// Yetkili yardım komutunu kullanabilen roller (owner her zaman kullanabilir)
+const ADMIN_HELP_ALLOWED_ROLES = new Set([
+  '1268595623012208731',
+  '1268595624211906684',
+  '1268595624899514412',
+  '1268595626258595853'
+]);
+
+// !espiri metinleri (30 adet)
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
   'Bir balinanın kalbi insan kadar ağır olabilir. Yani kalbi kırılan tek tür biz değiliz.',
@@ -37,12 +57,12 @@ const ESPIRI_TEXTS = [
   'İnsan beyni günde yaklaşık 60 bin düşünce üretir. Benimkiler genelde “şifre neydi?” ile meşgul.',
   'Ahtapotların üç kalbi vardır. Benimki ise fatura gününde üç kez duruyor.',
   'Kediler günde 12–16 saat uyur. Verimlilik tanrıları şu an gözyaşı döküyor.',
-  'Muzlar hafif radyoaktiftir; en tehlikelisi ısırıldığında biten potasyum olabilir.',
+  'Muzlar hafif radyoaktiftir; en tehlikelisi ısırıldığında biten potasyumdur.',
   'Satürn suya konsa yüzerdi. Keşke bütçem de bu kadar hafif olsa.',
   'Tavuklar insan yüzlerini ayırt edebilir. Market çıkışında indirimi kim yakalamış, biliyorlar.',
   'Şimşek, Güneş yüzeyinden daha sıcaktır. Ama elektrik faturasını görünce ben soğuyorum.',
   'Sümüklüböceklerin tuzla arası iyi değildir. Benim de ay sonuyla.',
-  'Yunuslar isimleriyle çağrılabilir. Benim çağrıma sadece Wi‑Fi cevap veriyor.',
+  'Yunuslar isimleriyle çağrılabilir. Benim çağrıma sadece Wi-Fi cevap veriyor.',
   'Yıldızlar gördüğünde geçmişi görürsün. Spor salonunda da geçmiş formumu arıyorum.',
   'Japonya’daki makineler kola verir, kalbim ise umut… bazen bozuk para üstünü veremiyor.',
   'Karıncalar ağırlıklarının katlarını kaldırabilir. Ben de dertlerimin… bazen kaldıramıyorum.',
@@ -52,7 +72,7 @@ const ESPIRI_TEXTS = [
   'Bal arıları dans ederek yön tarif eder. Ben Google Maps ile bile kayboluyorum.',
   'Zürafaların ses telleri var ama nadir kullanırlar. Ben de alarmı kapatınca öyleyim.',
   'Kutup ayılarının derisi siyahtır; ben de faturaları görünce kararıyorum.',
-  'Dünya her saniye 11 kilometre hızla döner; iş günü ise yerinde sayıyor gibi.',
+  'Dünya her saniye 11 km hızla döner; iş günü ise yerinde sayıyor gibi.',
   'Bir bulut tonlarca ağırlık taşıyabilir; ben ise “son bir bölüm daha”yı.',
   'Soğan doğrarken göz yaşartır; dolar kurunu görünce de etkisi benzer.',
   'Timsahlar dili dışarı çıkaramaz; ben de diyete başlayamıyorum.',
@@ -63,6 +83,8 @@ const ESPIRI_TEXTS = [
 
 // Küçük yardımcılar
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
+const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
+const inCommandChannel = (message) => message.channel?.id === COMMAND_CHANNEL_ID;
 
 // ====================== SES TAKİBİ =============================
 const joinTimes = new Map(); // gid:uid -> startedAt(ms)
@@ -98,8 +120,7 @@ const mKey = (gid, cid, uid) => `${gid}:${cid}:${uid}`;
 
 // ====================== REPLY ÖZEL CEVAPLAR ====================
 async function handleReplyReactions(message) {
-  // Mention geldiyse bu fonksiyon çalışmasın (çift yanıtı önler)
-  if (message.mentions?.users?.has?.(client.user.id)) return;
+  if (message.mentions?.users?.has?.(client.user.id)) return; // çift yanıt önleyici
 
   const refId = message.reference?.messageId;
   if (!refId) return;
@@ -130,21 +151,40 @@ client.on('messageCreate', async (message) => {
     messageCount.set(k, (messageCount.get(k) || 0) + 1);
   }
 
-  // ----------- KOMUTLAR (ÖNCE) -----------
-  // !espiri (tüm kanallar) — 30 espriden 1 tanesini söyler
+  // ----------- ÜYE YARDIM (her yerde) -----------
+  if (txt === '!yardım' || txt === '!yardim') {
+    const helpText = `
+📘 **Babuş'un Komut Rehberi (Üye)**
+
+🎭 **!espiri** — Sana rastgele komik ve bilgilendirici bir espri söyler.
+🪙 **!yazıtura** — Yazı mı Tura mı? Şansını dene babuş!
+🎯 **!zar üst / !zar alt** — Zar atılır. 1-3 alt, 4-6 üst. Kazanırsın; kaybedersen ağlama, hakkını veririz. 😎
+🎙️ **!ses** — Sunucuda en çok seste kalanların listesi.
+🎧 **!sesme** — Senin toplam seste kalma süreni gösterir.
+💬 **!sohbet** — Sohbet kanalında en çok yazanları gösterir.
+👻 **@bot** — Etiketlersen seninle konuşur. “@bot naber babuş” falan yaz, keyfine bak.
+☀️ **@bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.
+🌙 **@bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).
+
+🔒 Owner komutlarını boşver babuş, onlar teknik işler 😏
+`;
+    return void message.reply(helpText);
+  }
+
+  // ----------- EĞLENCE KOMUTLARI -----------
+  // !espiri
   if (txt.trim() === '!espiri') {
     const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
     return void message.reply(joke);
   }
 
-  // 🎲 Yazı Tura
+  // 🪙 Yazı Tura
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
     return void message.reply(`${sonuc} 🎲`);
   }
 
-  // 🎲 Zar Oyunu — !zar üst|alt
-  // Kural: 1-3 = alt, 4-6 = üst. Örnek: !zar üst
+  // 🎯 Zar Oyunu — !zar üst|alt (1-3 alt, 4-6 üst)
   if (txt.startsWith('!zar')) {
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
@@ -152,27 +192,58 @@ client.on('messageCreate', async (message) => {
     if (!['üst','alt'].includes(secim)) {
       return void message.reply('Kullanım: `!zar üst` veya `!zar alt`\nKural: **1-3 = alt**, **4-6 = üst**');
     }
-
     const roll = Math.floor(Math.random() * 6) + 1; // 1..6
     const sonuc = roll <= 3 ? 'alt' : 'üst';
     const kazandi = secim === sonuc;
-
-    const text = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}**\n${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakkını veririz.'}`;
+    const text = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}**
+${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakkını veririz.'}`;
     return void message.reply(text);
   }
 
-  // 💡 Yardım komutu — basit anlatım (owner komutları hariç)
-  if (txt === '!yardım' || txt === '!help') {
-    const helpText = `\n📘 **Babuş'un Komut Rehberi**  \n\n🎭 **!espiri** — Sana rastgele komik ve bilgilendirici bir espri söyler.\n🎲 **!yazıtura** — Yazı mı Tura mı? Şansını dene babuş!\n🎯 **!zar üst / !zar alt** — Zar atılır. 1-3 alt, 4-6 üst. Kazanırsın ya da... kaybedersen ağlama, hakkını veririz. 😎\n🎙️ **!ses** — Sunucuda en çok seste kalanların listesi.\n🎧 **!sesme** — Senin toplam seste kalma süreni gösterir.\n💬 **!sohbet** — Sohbet kanalında en çok yazanları gösterir.\n👻 **@bot** — Etiketlersen seninle konuşur. “@bot naber babuş” falan yaz, keyfine bak.\n☀️ **@bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.\n🌙 **@bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).\n\n> 🔒 Owner komutlarını boşver babuş, onlar teknik işler 😏\n`;
-    return void message.reply(helpText);
+  // ----------- YETKİLİ YARDIM (sadece komut kanalında ve yetkili rollere/owner'a) -----------
+  if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
+    if (!inCommandChannel(message)) {
+      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+    }
+    const isOwner = OWNERS.includes(uid);
+    const hasRole = hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES);
+    if (!isOwner && !hasRole) {
+      return message.reply('⛔ Bu yardımı görme yetkin yok.');
+    }
+
+    const adminHelp = `
+🛠️ **Yönetici Yardım — Moderasyon Komutları**
+
+**!ban <kullanıcıId>**
+• Kullanım: \`!ban 123456789012345678\`
+• Yetki: Sadece **Sagi & Lunar (owner)**
+• Not: Botta “Üyeleri Yasakla” yetkisi olmalı. Owner'lar banlanamaz.
+
+**!mute <kullanıcıId> <dakika>**
+• Kullanım: \`!mute 123456789012345678 15\`
+• Yetki: **Owner** veya rolleri olanlar:
+  - \`1268595623012208731\`, \`1268595624211906684\`, \`1268595624899514412\`, \`1268595626258595853\`
+• Not: 1 dk – 43200 dk (30 gün). Botta “Üyeleri Zaman Aşımına Uğrat” yetkisi olmalı.
+
+**!sohbet-sifirla**
+• Sohbet liderliği sayaçlarını sıfırlar (tüm üyeler için).
+• Yetki: **Owner**
+
+**!ses-sifirla**
+• Ses istatistiklerini sıfırlar (tüm üyeler için).
+• Yetki: **Owner**
+
+> ⚠️ Bu komutların hepsi sadece **<#${COMMAND_CHANNEL_ID}>** kanalında çalışır.
+`;
+    return void message.reply(adminHelp);
   }
 
-  // Bota YANIT özel cevapları (selam YOK)
+  // ----------- REPLY TABANLI OTOMATİK CEVAPLAR -----------
   await handleReplyReactions(message);
 
   // ----------- BOT MENTION -----------
   if (message.mentions.users.has(client.user.id)) {
-    // Özel cümleler mention ile gelirse sadece bunlara cevap ver (selam yok)
+    // Özel cümleler mention ile gelirse sadece bunlara cevap ver
     if (txt.includes('teşekkürler sen'))     return void message.reply('iyiyim teşekkürler babuş👻');
     if (txt.includes('teşekkürler'))         return void message.reply('rica ederim babuş👻');
     if (txt.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
@@ -181,14 +252,12 @@ client.on('messageCreate', async (message) => {
     if (/(günaydın|gunaydin)/.test(txt))     return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
     if (/(iyi akşamlar|iyi aksamlar)/.test(txt)) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
 
-    // Sadece @bot yazıldıysa (başka metin yoksa) "naber babuş 👻" — her seferinde
+    // Sadece @bot yazıldıysa (başka metin yoksa)
     const onlyMention = message.content.replace(/<@!?\d+>/g, '').trim().length === 0;
     if (onlyMention) return void message.reply('naber babuş 👻');
-
-    // Mention + metin var ama özel cümle yoksa: sessiz
   }
 
-  // ----------- KOMUTLAR (DEVAM) -----------
+  // ----------- İSTATİSTİK KOMUTLARI -----------
   // Ses Liderliği
   if (txt === '!ses') {
     if (!gid) return;
@@ -223,7 +292,8 @@ client.on('messageCreate', async (message) => {
     return void message.reply(`💬 **Sohbet Liderliği** (<#${SOHBET_KANAL_ID}>)\n${top}`);
   }
 
-  // Yalnız OWNERS → Ses Sıfırla
+  // ----------- OWNER KOMUTLARI -----------
+  // Ses Sıfırla
   if (txt === '!ses-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) {
@@ -234,12 +304,106 @@ client.on('messageCreate', async (message) => {
     return void message.reply(`🎙️ ${label} — Ses verileri sıfırlandı!`);
   }
 
-  // Yalnız OWNERS → Sohbet Sıfırla
+  // Sohbet Sıfırla
   if (txt === '!sohbet-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) for (const k of [...messageCount.keys()]) if (k.startsWith(`${gid}:`)) messageCount.delete(k);
     const label = OWNER_LABEL[uid] || 'hayhay';
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
+  }
+
+  // Ban (sadece komut kanalında + owner)
+  if (txt.startsWith('!ban')) {
+    if (!inCommandChannel(message)) {
+      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+    }
+    if (!OWNERS.includes(uid)) {
+      return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
+    }
+    const m = message.content.match(/^!ban\s+(\d{17,20})$/);
+    if (!m) return message.reply('Kullanım: `!ban <kullanıcıId>`');
+
+    const targetId = m[1];
+    if (!message.guild) return;
+    try {
+      const me = message.guild.members.me;
+      if (!me.permissions.has(PermissionFlagsBits.BanMembers)) {
+        return message.reply('⛔ Gerekli yetki yok: **Üyeleri Yasakla**');
+      }
+      if (OWNERS.includes(targetId)) return message.reply('⛔ Owner’ları banlayamam.');
+      if (targetId === me.id) return message.reply('⛔ Kendimi banlayamam.');
+
+      const member = await message.guild.members.fetch(targetId).catch(() => null);
+      if (member && !member.bannable) {
+        return message.reply('⛔ Bu üyeyi banlayamıyorum (rol hiyerarşisi/izin).');
+      }
+
+      await message.guild.members.ban(targetId, { reason: `Owner ban: ${message.author.tag}` });
+      return void message.reply(`✅ <@${targetId}> banlandı.`);
+    } catch (e) {
+      console.error('!ban hata:', e);
+      return message.reply('⛔ Ban işlemi başarısız oldu.');
+    }
+  }
+
+  // Mute (sadece komut kanalında + owner veya yetkili roller)
+  if (txt.startsWith('!mute')) {
+    if (!inCommandChannel(message)) {
+      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+    }
+    const invokerIsOwner = OWNERS.includes(uid);
+    const invokerHasRole = hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES) || hasAnyRole(message.member, MUTE_ALLOWED_ROLES);
+    if (!invokerIsOwner && !invokerHasRole) {
+      return message.reply('⛔ Bu komutu kullanamazsın (gerekli rol yok).');
+    }
+
+    const m = message.content.match(/^!mute\s+(\d{17,20})\s+(\d{1,5})$/);
+    if (!m) return message.reply('Kullanım: `!mute <kullanıcıId> <dakika>` (ör. `!mute 123456789012345678 15`)');
+
+    const targetId = m[1];
+    const minutes = Math.max(1, Math.min(43200, parseInt(m[2], 10))); // 1 dk - 30 gün
+    const ms = minutes * 60 * 1000;
+
+    if (!message.guild) return;
+    try {
+      const me = message.guild.members.me;
+      if (!me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+        return message.reply('⛔ Gerekli yetki yok: **Üyeleri Zaman Aşımına Uğrat**');
+      }
+      if (OWNERS.includes(targetId)) return message.reply('⛔ Owner’ları muteleyemem.');
+      if (targetId === me.id) return message.reply('⛔ Kendimi muteleyemem.');
+
+      const member = await message.guild.members.fetch(targetId).catch(() => null);
+      if (!member) return message.reply('⛔ Kullanıcı bulunamadı.');
+      if (!member.moderatable) return message.reply('⛔ Bu üyeyi muteleyemiyorum (rol hiyerarşisi/izin).');
+
+      await member.timeout(ms, `Mute by ${message.author.tag} (${minutes} dk)`);
+      return void message.reply(`✅ <@${targetId}> **${minutes} dk** susturuldu.`);
+    } catch (e) {
+      console.error('!mute hata:', e);
+      return message.reply('⛔ Mute işlemi başarısız oldu.');
+    }
+  }
+
+  // Owner → (!sohbet-sil <adet>) toplu mesaj silme (1–100, bulunduğu kanalda)
+  if (txt.startsWith('!sohbet-sil')) {
+    if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
+    const m = txt.match(/^!sohbet-sil\s+(\d{1,3})$/);
+    if (!m) return message.reply('Kullanım: `!sohbet-sil <adet>` (1–100)');
+    const adet = Math.max(1, Math.min(100, parseInt(m[1], 10)));
+
+    const me = message.guild?.members?.me;
+    if (!me || !me.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
+      return message.reply('⛔ Gerekli yetki yok: **Mesajları Yönet**');
+    }
+    try {
+      const deleted = await message.channel.bulkDelete(adet, true); // 14 günden eski atlanır
+      const info = await message.channel.send(`🧹 ${deleted.size} mesaj silindi.`);
+      setTimeout(() => info.delete().catch(() => {}), 5000);
+    } catch (e) {
+      console.error('!sohbet-sil hatası:', e);
+      return message.reply('⛔ Silme başarısız (14 günden eski olabilir veya kanal tipi desteklemiyor).');
+    }
   }
 });
 
@@ -250,8 +414,7 @@ client.on('channelDelete', async (channel) => {
     const guild = channel.guild;
     if (!guild) return;
 
-    // Audit log biraz gecikebilir
-    await new Promise(r => setTimeout(r, 1500));
+    await new Promise(r => setTimeout(r, 1500)); // audit gecikmesi
 
     let executor = null;
     try {
@@ -299,8 +462,14 @@ client.on('channelDelete', async (channel) => {
 // ====================== READY / HATA LOG =======================
 client.once('ready', () => {
   console.log(`✅ Bot aktif: ${client.user.tag}`);
-  // Durum: Oyun oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
-  client.user.setActivity('Sagi tarafından oluşturuldu — yardım için sagimokhtari', { type: 0 });
+  // Durum: Oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
+  client.user.setPresence({
+    activities: [{
+      name: 'Sagi tarafından oluşturuldu — yardım için sagimokhtari',
+      type: ActivityType.Playing
+    }],
+    status: 'online'
+  });
 });
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
