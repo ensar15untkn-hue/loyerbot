@@ -144,7 +144,8 @@ const FLOWER_RESPONSES = [
   "Senin gibi birinin sevdiği çiçek de özel olurdu zaten 🌼"
 ];
 
-// ====================== LOL KARAKTER DİYALOĞU VERİLERİ ======================
+// ====================== LOL KARAKTER DİYALOĞU ======================
+// 1) Eski temel liste
 const LOL_RESPONSES = {
   "zed": "Ah, Zed 💀 gölgelerin babasıyımdır zaten 😏",
   "yasuo": "Yasuo mu? Rüzgar seninle olsun, ama FF 15 olmasın 🌪️",
@@ -223,6 +224,90 @@ const LOL_RESPONSES = {
   "seraphine": "Seraphine 🎤 güzel ses, ama biraz az konuş 😏",
   "taric": "Taric 💎 parlaklığın göz alıyor, kıskandım 😍"
 };
+
+// 2) Yeni liste — sadece EKSİK olanları ekle (aynı anahtar varsa eskisini koru)
+const LOL_NEW = {
+  "aatrox": "Aatrox ⚔️ sonsuz öfkenin vücut bulmuş hâli. Kılıcını değil, yıkımı kuşanırsın.",
+  "akshan": "Akshan 🪄 intikamın yakışıklısı! Kancan kadar hızlı bir dilin var.",
+  "alistar": "Alistar 🐂 öfkenin boynuzlu hali! Ama kalbin süt gibi yumuşak.",
+  "aphelios": "Aphelios 🌙 sessizliğin içinde ölüm gibi bir zarafet.",
+  "ashe": "Ashe ❄️ soğuk hedef, sıcak zafer. Demacia değil ama kalpler seninle.",
+  "aurelion sol": "Aurelion Sol 🌌 yıldızlar bile senin egonun yanında sönük kalıyor.",
+  "azir": "Azir 🏜️ kumların imparatoru, tahtın toz tutmuş ama asalet baki.",
+  "bard": "Bard 🔔 konuşmaz ama ruhunla şarkı söylersin.",
+  "bel'veth": "Bel’Veth 🦋 derinliklerin kraliçesi, karanlık bile senden korkuyor.",
+  "braum": "Braum 🛡️ kalbin kapı gibi geniş, bıyıkların kadar güçlü!",
+  "corki": "Corki ✈️ paket geldi! Bu uçuşta türbülans bol.",
+  "cho'gath": "Cho’Gath 🍖 tokatınla yer sarsılıyor, acıkınca gezegen yiyorsun.",
+  "diana": "Diana 🌙 ay ışığı kadar zarif, ama kılıcın acımasız.",
+  "dr mundo": "Dr. Mundo 💊 mantığın değil kasların konuşuyor, yine de seviliyorsun.",
+  "elise": "Elise 🕷️ örümcek ağında entrika dokuyorsun, dikkat et ısırmasın.",
+  "evelynn": "Evelynn 💋 tatlı fısıltıların, ölümün habercisi.",
+  "fiora": "Fiora 🗡️ gururun kadar keskin bir kılıç ustalığın var.",
+  "galio": "Galio 🗿 taştan yürek ama adaletin kanatları sende.",
+  "gangplank": "Gangplank ☠️ rom, barut ve intikam kokuyorsun, kaptan!",
+  "gnar": "Gnar 🦖 küçükken sevimli, büyüyünce kabus. Evrim sende eksik kalmamış.",
+  "gragas": "Gragas 🍺 içince eğlence, dövüşte felaket. Sen tam parti ruhusun.",
+  "gwen": "Gwen ✂️ iplik iplik zarafet ve ölüm; kumaş değil, kader biçiyorsun.",
+  "hwei": "Hwei 🎨 sanatla öldüren nadir adamlardansın, saygı büyük.",
+  "ivern": "Ivern 🌳 dost ağaçların konuşanı! Barışın sesi, doğanın elçisi.",
+  "jayce": "Jayce 🔨 bilimin çekiçle buluştuğu an; tarzın kadar zekisin.",
+  "jhin": "Jhin 🎭 her ölüm bir sanat eseri; tetiğin sahne, kurşun perden.",
+  "k’sante": "K’Sante 🛡️ nazik bir savaşçı, kas gücüyle değil karizmayla kazanırsın.",
+  "kaisa": "Kai’Sa 👾 boşluğun içinden bile stilinle ışık saçıyorsun.",
+  "kalista": "Kalista 🗡️ ihanetin bedelini tahsil eden ruh. Mızrakların dert anlatıyor.",
+  "karthus": "Karthus 💀 ölüm bile senin melodinle dans eder.",
+  "kassadin": "Kassadin ⚔️ boşluğun avcısı, ama o pelerin fazla cool.",
+  "katarina": "Katarina 🔪 hız, ölüm ve zarafet... senin üçlün bu.",
+  "kennen": "Kennen ⚡ küçüksün ama fırtına gibisin. Pikachu bile imrenir.",
+  "kog'maw": "Kog’Maw 🧪 tükürüğün bile ölümcül, ama sevimli olmayı başarıyorsun.",
+  "ksante": "K’Sante 💪 nazik dev, savaşta bile zarafet var sende.",
+  "kled": "Kled 🐎 delilikle cesaretin birleşimi! Savaşta çığlıkların yankılanıyor.",
+  "leona": "Leona ☀️ güneş gibi parlıyorsun, ama fazla yaklaşanı yakıyorsun.",
+  "lissandra": "Lissandra ❄️ soğuk planların var, buz gibi stratejilerinle üşütüyorsun.",
+  "lulu": "Lulu 🧚‍♀️ büyülü yaramazlık timsali! Piks’le eğlencenin tanımı sensin.",
+  "malzahar": "Malzahar 🕳️ boşluğun peygamberi, sesin bile yankı bırakıyor.",
+  "maokai": "Maokai 🌲 doğanın öfkesiyle kök salmışsın, ağaçların lideri.",
+  "master yi": "Master Yi 🗡️ sabır, meditasyon ve saniyede 7 kesik.",
+  "milio": "Milio 🔥 küçük ama sıcak kalpli! herkesin içini ısıtıyorsun.",
+  "miss fortune": "Miss Fortune 💋 güzelliğin kadar hedefin de ölümcül.",
+  "naafiri": "Naafiri 🐺 sürü sadakati, ölümcül zarafetle birleşmiş sende.",
+  "neeko": "Neeko 🌺 taklit yeteneğin efsane, ama gerçek halin en tatlısı.",
+  "orianna": "Orianna ⚙️ duygusuz gibi görünsen de mekanik zarafet sende.",
+  "ornn": "Ornn 🔥 ustaların ustası! Alevler bile sana danışır.",
+  "quinn": "Quinn 🦅 Valor’la birlikte göklerin gözü oldun.",
+  "rell": "Rell 🧲 demirin kızı, öfken bile manyetik.",
+  "reksai": "Rek’Sai 🐍 yerin altından geliyorsun, sürprizlerle dolusun.",
+  "rumble": "Rumble 🔧 mekanik zekan küçük, egon devasa. Harika kombinasyon.",
+  "ryze": "Ryze 📜 dünyanın en eski defterini taşıyorsun, hâlâ sayfa bitmemiş.",
+  "sejuani": "Sejuani 🐗 buz gibi lider, sıcakkanlı savaşçı.",
+  "skarner": "Skarner 🦂 kristallerle dövüşüyorsun, parıltın efsane.",
+  "swain": "Swain 🦅 zeka, strateji ve karanlık bir zarafet.",
+  "sylas": "Sylas 🔗 zincirlerini kırdın, şimdi intikamın sesi oldun.",
+  "taliyah": "Taliyah 🧶 taşlarınla dans ediyorsun, zarafetle yıkım bir arada.",
+  "tahm kench": "Tahm Kench 🐸 açgözlülüğün tadı damağında. Herkes menüde.",
+  "trundle": "Trundle ❄️ buz troll’ü ama mizahın sıcak. Kralın kendin oldun.",
+  "twitch": "Twitch 🧀 çöpün içinden çıkan nişancı, hijyenden uzak ama ölümcül.",
+  "urgot": "Urgot 🔩 metalin öfkesi! makineler bile senden korkuyor.",
+  "varus": "Varus 🏹 intikamın sesi, her okta bir acı gizli.",
+  "vel'koz": "Vel’Koz 👁️ bilgi manyağı tentakül, analizde profesörsün.",
+  "vex": "Vex 😑 moral bozmakta üstüne yok, ama tarzın cool.",
+  "volibear": "Volibear ⚡ gök gürültüsünün vücut bulmuş hâli, karizma akıyor.",
+  "vladimir": "Vladimir 🩸 kan kadar asil, ölüm kadar cazibeli.",
+  "wukong": "Wukong 🐒 oyunbaz savaşçı, klonların bile havalı.",
+  "xerath": "Xerath ⚡ saf enerji, öfken kadar güçlü bir ışık.",
+  "xinzhao": "Xin Zhao 🛡️ sadakat timsali, mızrağın şerefli.",
+  "yorick": "Yorick ⚰️ mezarlık senin sahnen, ruhlar orkestran.",
+  "zac": "Zac 🧬 esnekliğin sınır tanımıyor, tam bir zıplama ustası.",
+  "zeri": "Zeri ⚡ hızın sesi! şimşek gibi geçiyorsun.",
+  "zoe": "Zoe 🌈 renkli kaosun elçisi, enerjin bitmek bilmiyor.",
+  "zyra": "Zyra 🌿 doğa seninle konuşuyor, dikenlerin bile zarif."
+};
+
+// Eskiyi koruyarak yeni anahtarları ekle
+for (const [k, v] of Object.entries(LOL_NEW)) {
+  if (!(k in LOL_RESPONSES)) LOL_RESPONSES[k] = v;
+}
 
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
@@ -443,7 +528,7 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
     const msg = HUG_MESSAGES[Math.floor(Math.random() * HUG_MESSAGES.length)];
     const gif = HUG_GIFS[Math.floor(Math.random() * HUG_GIFS.length)];
 
-    // Kendine sarılma esprisi (istersen kaldırabiliriz)
+    // Kendine sarılma esprisi
     if (target.id === uid) {
       return message.reply({
         content: `**${message.author.username}**, kendine sarıldı… kendi kendini teselli etmek de bir sanattır 🤍`,
@@ -467,19 +552,34 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
   // ----------- ÜYE YARDIM (her yerde) -----------
   if (txt === '!yardım' || txt === '!yardim') {
     const helpText = `
-📘 **Fang Yuan Bot'un Komut Rehberi (Üye)**
+📘 **Fang Yuan Bot • Üye Yardım**
 
-🎭 **!espiri** — Sana rastgele komik ve bilgilendirici bir espri söyler.
-🪙 **!yazıtura** — Yazı mı Tura mı? Şansını dene babuş!
-🎯 **!zar üst / !zar alt** — Zar atılır. 1-3 alt, 4-6 üst. Kazanırsın; kaybedersen ağlama, hakkını veririz. 😎
-🎙️ **!ses** — Sunucuda en çok seste kalanların listesi.
-🎧 **!sesme** — Senin toplam seste kalma süreni gösterir.
-💬 **!sohbet** — Sohbet kanalında en çok yazanları gösterir.
-👻 **@Fang Yuan Bot** — Etiketlersen seninle konuşur. “@Fang Yuan Bot naber babuş” falan yaz, keyfine bak.
-☀️ **@Fang Yuan Bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.
-🌙 **@Fang Yuan Bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).
+🎮 **Oyunlar**
+• \`!yazıoyunu\` — **<#${TYPING_CHANNEL_ID}>** kanalında 60 sn'lik yazı yarışını başlatır.  
+• \`!yazıpuan\` — Yazı Oyunu ilk 10 skor tablosu.  
+• \`!yazıiptal\` — (Owner) Aktif yarışı iptal eder.  
+• \`!yazıresetle\` — (Owner) Yazı Oyunu puanlarını sıfırlar.  
 
-🔒 Owner komutlarını boşver babuş, onlar teknik işler 😏
+💞 **Etkileşim**
+• \`!sarıl @kullanıcı\` — **<#${HUG_CHANNEL_ID}>** kanalında sarılma GIF’i ile sarılır.  
+• \`@Fang Yuan Bot\` — Etiketle sohbet et: “naber babuş”, “günaydın”, “iyi akşamlar”, “moralim bozuk”, “çok mutluyum” vb.  
+• **LoL**: “**mainim <şampiyon>**” yaz; şampiyona özel cevap gelsin.  
+• **Çiçek**: “**en sevdiğim çiçek <isim>**” yaz; şık bir yanıt al.  
+
+🎲 **Eğlence**
+• \`!espiri\` — Rastgele espri + bilgi.  
+• \`!yazıtura\` — Yazı/Tura at.  
+• \`!zar üst\` veya \`!zar alt\` — 1–3 alt, 4–6 üst.
+
+📊 **İstatistik**
+• \`!ses\` — En çok seste kalanlar.  
+• \`!sesme\` — Toplam seste kalma süren.  
+• \`!sohbet\` — **<#${SOHBET_KANAL_ID}>** için mesaj liderliği.  
+
+ℹ️ **Notlar**
+• Bazı komutlar belirli kanallarda çalışır (metin içinde belirtilmiştir).  
+• Owner/Yetkili komutları için \`!yardımyetkili\` yaz.  
+🔒 **Owner kısmı seni aşar babuş; orası teknik işler** 😏
 `;
     return void message.reply(helpText);
   }
@@ -520,33 +620,37 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     }
     const isOwner = OWNERS.includes(uid);
     const hasRole = hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES);
+
     if (!isOwner && !hasRole) {
       return message.reply('⛔ Bu yardımı görme yetkin yok.');
     }
 
     const adminHelp = `
-🛠️ **Yönetici Yardım — Moderasyon Komutları**
+🛠️ **Yönetici/Owner Yardımı**
 
-**!ban <kullanıcıId>**
-• Kullanım: \`!ban 123456789012345678\`
-• Yetki: Sadece **Sagi & Lunar (owner)**
-• Not: Botta “Üyeleri Yasakla” yetkisi olmalı. Owner'lar banlanamaz.
+**Moderasyon**
+• **!ban <kullanıcıId>** — (Owner) Kullanıcıyı yasaklar. Gerekli izin: **Üyeleri Yasakla**.  
+• **!mute <kullanıcıId> <dakika>** — (Owner veya yetkili rol) Zaman aşımı. 1–43200 dk. Gerekli izin: **Üyeleri Zaman Aşımına Uğrat**.  
+• **!sohbet-sil <1–100>** — (Owner) Bulunulan kanalda toplu mesaj siler (14 günden eski hariç). Gerekli izin: **Mesajları Yönet**.  
 
-**!mute <kullanıcıId> <dakika>**
-• Kullanım: \`!mute 123456789012345678 15\`
-• Yetki: **Owner** veya rolleri olanlar:
-  - \`1268595623012208731\`, \`1268595624211906684\`, \`1268595624899514412\`, \`1268595626258595853\`
-• Not: 1 dk – 43200 dk (30 gün). Botta “Üyeleri Zaman Aşımına Uğrat” yetkisi olmalı.
+**Sayaç/İstatistik Sıfırlama**
+• **!sohbet-sifirla** — (Owner) Sohbet liderliği sayaçlarını temizler.  
+• **!ses-sifirla** — (Owner) Ses istatistiklerini sıfırlar.  
 
-**!sohbet-sifirla**
-• Sohbet liderliği sayaçlarını sıfırlar (tüm üyeler için).
-• Yetki: **Owner**
+**Yazı Oyunu Yönetimi** *(sadece **<#${TYPING_CHANNEL_ID}>** kanalında çalışır)*  
+• **!yazıiptal** — (Owner) Aktif yarışmayı iptal eder (puanları silmez).  
+• **!yazıresetle** — (Owner) Sunucuya ait tüm Yazı Oyunu puanlarını sıfırlar.  
 
-**!ses-sifirla**
-• Ses istatistiklerini sıfırlar (tüm üyeler için).
-• Yetki: **Owner**
+**Kanallar / Roller**
+• Komut kanalı: **<#${COMMAND_CHANNEL_ID}>**  
+• Yazı Oyunu kanalı: **<#${TYPING_CHANNEL_ID}>**  
+• Sarılma komutu kanalı: **<#${HUG_CHANNEL_ID}>**  
+• Yetkili roller (mute/yardım): \`${[...ADMIN_HELP_ALLOWED_ROLES].join(', ')}\`  
+• Ek mute rolleri: \`${[...MUTE_ALLOWED_ROLES].join(', ')}\`  
 
-> ⚠️ Bu komutların hepsi sadece **<#${COMMAND_CHANNEL_ID}>** kanalında çalışır.
+> Notlar:  
+> • Owner ID’leri: \`${OWNERS.join(', ')}\`  
+> • Owner’lar ban/mute hedefi olamaz; bot gerekli izne sahip olmalıdır.
 `;
     return void message.reply(adminHelp);
   }
@@ -576,8 +680,8 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply('En sevdiğim karakter **Zed** 💀 babasıyımdır; senin mainin ne?');
   }
 
-  if (/mainim\s+([a-zA-Zçğıöşü\s]+)/i.test(txt)) {
-    const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s]+)/i);
+  if (/mainim\s+([a-zA-Zçğıöşü\s'.-]+)/i.test(txt)) {
+    const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s'.-]+)/i);
     const champ = match ? match[1].trim().toLowerCase() : null;
     if (champ) {
       const found = Object.keys(LOL_RESPONSES).find(c => champ.includes(c));
@@ -597,7 +701,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   if (message.mentions.users.has(client.user.id)) {
     const lc = message.content.toLocaleLowerCase('tr');
 
-    // ✅ DUYGU CEVAPLARI — ÖNCE ÇALIŞSIN (öncelik)
+    // ✅ DUYGU CEVAPLARI
     if (lc.includes('moralim bozuk')) {
       const reply = SAD_REPLIES[Math.floor(Math.random() * SAD_REPLIES.length)];
       return void message.reply(reply);
