@@ -1,0 +1,13 @@
+{
+  "name": "loyerbot",
+  "version": "1.0.0",
+  "description": "Discord bot for Loyer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.15.2",
+    "express": "^4.18.2"
+  }
+}
