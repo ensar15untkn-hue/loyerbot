@@ -271,6 +271,27 @@ function normalizeTR(s) {
 }
 function scoreKey(gid, uid){ return `${gid}:${uid}`; }
 
+// ====================== SARILMA OYUNU ======================
+const HUG_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
+const HUG_GIFS = [
+  'https://media.tenor.com/o1jezAk92FUAAAAM/sound-euphonium-hug.gif',
+  'https://media.tenor.com/6RXFA8NLS1EAAAAM/anime-hug.gif',
+  'https://media.tenor.com/aOQrkAJckyEAAAAM/cuddle-anime.gif',
+  'https://media.tenor.com/i2Mwr7Xk__YAAAAM/cat-girl-snuggle.gif'
+];
+const HUG_MESSAGES = [
+  'seni çok seviyor galiba 💞',
+  'bu sarılma bütün dertleri unutturdu 🫶',
+  'o kadar içten sarıldı ki oda 2 derece ısındı ☀️',
+  'biraz fazla sıktı galiba ama tatlı duruyor 😳',
+  'mutluluğun resmi bu olabilir 💗',
+  'kim demiş soğuk insanlar sarılmaz diye 😌',
+  'kalpler buluştu, dünya bir anlığına durdu 💫',
+  'sıcacık bir dostluk kokusu var bu sarılmada 🤍',
+  'böyle sarılınca kim üzülür ki? 🌈',
+  'en güçlü büyü: bir sarılma 🤗'
+];
+
 // ====================== KÜÇÜK YARDIMCILAR ======================
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
@@ -408,6 +429,34 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
     }
   }
   // =================== /YAZI OYUNU ===================
+
+  // ===================== SARILMA OYUNU (sadece belirlenen kanalda) =====================
+  if (txt.startsWith('!sarıl') || txt.startsWith('!saril')) {
+    if (cid !== HUG_CHANNEL_ID)
+      return message.reply(`⛔ Bu komut sadece <#${HUG_CHANNEL_ID}> kanalında kullanılabilir.`);
+
+    const target = message.mentions.users.first();
+    if (!target) {
+      return message.reply('Kime sarılmak istiyorsun babuş? `!sarıl @kullanıcı` şeklinde kullan.');
+    }
+
+    const msg = HUG_MESSAGES[Math.floor(Math.random() * HUG_MESSAGES.length)];
+    const gif = HUG_GIFS[Math.floor(Math.random() * HUG_GIFS.length)];
+
+    // Kendine sarılma esprisi (istersen kaldırabiliriz)
+    if (target.id === uid) {
+      return message.reply({
+        content: `**${message.author.username}**, kendine sarıldı… kendi kendini teselli etmek de bir sanattır 🤍`,
+        files: [gif]
+      });
+    }
+
+    return message.reply({
+      content: `**${message.author.username}**, **${target.username}**'e sarıldı! ${msg}`,
+      files: [gif]
+    });
+  }
+  // =================== /SARILMA OYUNU ===================
 
   // Sohbet liderliği sayacı (sadece belirlenen kanal)
   if (gid && cid === SOHBET_KANAL_ID) {
