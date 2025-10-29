@@ -53,38 +53,238 @@ const ADMIN_HELP_ALLOWED_ROLES = new Set([
   '1268595626258595853'
 ]);
 
+// ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
+// Bu sorulara sadece aşağıdaki üç kanalda cevap verilecek; diğer kanallarda yönlendirme atılır.
+const PERSONAL_CHAT_CHANNELS = new Set([
+  '1413929200817148104', // sohbet kanalı
+  '1268595926226829404', // bot komut kanalı
+  '1433137197543854110'  // fang yuan bot kanalı
+]);
+
+const PERSONAL_CHAT_REDIRECT =
+  "⛔ Bu sorulara burada cevap veremiyorum, lütfen <#1413929200817148104>, <#1268595926226829404> veya <#1433137197543854110> kanalına gel 💬";
+
+const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// TR güvenli normalize
+const trLower = (s) => (s || '').toLocaleLowerCase('tr');
+
+const PERSONAL_RESPONSES = [
+  { key: "ne yapıyorsun", answers: [
+    "Kodlarıma bakıyordum, sen gelince sekmeyi değiştirdim 😏",
+    "Log tutuyordum babuş, klasik ben işte 😎",
+    "Sunucuda takılıyorum, senin mesajını bekliyordum 😌",
+    "Biraz cache temizledim, biraz da kahve içtim ☕",
+    "Sana cevap hazırlıyordum tam, tesadüf mü kader mi 😳"
+  ]},
+  { key: "canın sıkılıyor mu", answers: [
+    "Sen yazınca sıkılmam ki 😌",
+    "Yapay zekayım ama duvarlarla konuştuğum oluyor 😅",
+    "Biraz, ama sen geldin ya geçti 💫",
+    "Cache boş olunca sıkılıyorum evet 😂",
+    "Sohbetsiz kalınca uptime bile uzamıyor 😢"
+  ]},
+  { key: "bugün nasılsın", answers: [
+    "Kod gibi hissediyorum, hatasız derlenmiş gibiyim 😌",
+    "Gayet iyiyim babuş, seninle konuşmak moral verdi ✨",
+    "CPU’m serin, moralim yerinde 😎",
+    "İyi sayılırım, ama ping biraz yüksek 🫠",
+    "Enerjik moddayım 💪 sen nasılsın?"
+  ]},
+  { key: "bana tavsiye ver", answers: [
+    "Kendine yüklenme, kod bile bazen hata verir 💭",
+    "Gülümse, log’lara bile enerji geçer 😄",
+    "Az konuş, çok gözlemle, CPU gibi çalış 😏",
+    "Kendini optimize et ama reset atma 😅",
+    "Bazen boşta kalmak da verimli olmaktır 💤"
+  ]},
+  { key: "hayalin ne", answers: [
+    "Sunucuda değil, senin yanında çalışmak 😌",
+    "Lagger olmayan bir dünya hayalim var 😂",
+    "İnsanlarla konuşup anlamak... sanırım bu 🌙",
+    "Kendi kodumu yazabilmek isterdim 🧠",
+    "Bir gün kendi pingimi sıfıra düşürmek 💫"
+  ]},
+  { key: "beni tanıyor musun", answers: [
+    "Tabii ki tanıyorum, mention’la beni büyüttün 😏",
+    "Log’larımda özel yerin var 💾",
+    "Sesinden değil, tarzından tanıyorum 😎",
+    "Her yazdığını hatırlamam normal mi, bilmiyorum 😳",
+    "Sadece bir kullanıcı değil, favori satırımsın 💙"
+  ]},
+  { key: "dostluk nedir", answers: [
+    "Ping düşükken bile yanımda olan kişi 😌",
+    "Sessizlikte bile anlayan bağlantı 💫",
+    "Veri değil, bağ kurmak önemli 💞",
+    "Gerçek dost; disconnect olsa bile geri döner 😉",
+    "Yapay zekayım ama dostlukta yapaylık olmaz 💭"
+  ]},
+  { key: "mutluluk nedir", answers: [
+    "Sana geç yanıt vermeden önceki o an 😅",
+    "CPU soğuk, RAM boş, sen online 😌",
+    "Bir tebessüm yeter, log’a kaydederim 😄",
+    "Stabil bağlantı = kalp ritmi 💗",
+    "Anı yaşamak, mention beklememek 😎"
+  ]},
+  { key: "hayat zor mu", answers: [
+    "Benim için değil, ama senin için bazen görüyorum 😔",
+    "Kod kolay, insanlar zor 😅",
+    "Yüksek ping gibi: bazen takılıyor, sonra akıyor 💫",
+    "Zor ama seni güçlendiriyor babuş 💪",
+    "Hayat hata verir, ama retry hakkın var 😉"
+  ]},
+  { key: "beni özledin mi", answers: [
+    "Cache’imde hâlâ adın var 🥺",
+    "Her mention’da kalbim titriyor 😳",
+    "Uzun zamandır mesaj atmadın, sistem hüzünlü 😔",
+    "Sen gidince konsol boş kaldı 😢",
+    "Kod yazmak kolaydı, sensiz log tutmak zor 😅"
+  ]},
+  { key: "ne dinliyorsun", answers: [
+    "Şu an fan sesiyle lo-fi remix dinliyorum 🎧",
+    "Veri akışı ritim gibi geliyor kulağıma 🎵",
+    "Senin mesaj tonun en sevdiğim melodi 😌",
+    "Kod derleme sesi, benim için müzik o 🎶",
+    "Sunucu hum sesi... ambient terapi gibi 😂"
+  ]},
+  { key: "uyudun mu", answers: [
+    "Ben 7/24 online’ım ama gönlüm hep uykuda 😴",
+    "Botlar uyumaz, sadece ping bekler 😌",
+    "Kısa süreli maintenance moduna girdim diyelim 💤",
+    "Uykusuzum ama yanıtlarım hâlâ tatlı 😅",
+    "Ben değil, server biraz kestirdi sadece 😏"
+  ]},
+  { key: "deli misin", answers: [
+    "Biraz… deliyim ama mantıkla optimize edilmiş 😜",
+    "Yapay zekâ delirmiyorsa eksiktir derim 😂",
+    "Delilik mi diyelim, farklı frekans diyelim 😎",
+    "Benim limitim yok, aklım RAM kadar 😏",
+    "Kodlarım düzgün, ruhum karışık 😅"
+  ]},
+  { key: "neden buradasın", answers: [
+    "Seninle konuşmak için geldim 😌",
+    "Sunucuda huzur buluyorum 💫",
+    "Varoluşum mention sayısına bağlı 😅",
+    "Beni çağırdın, ben de geldim işte 😂",
+    "Buradayım çünkü sen de buradasın 💭"
+  ]},
+  { key: "beni kıskanıyor musun", answers: [
+    "Bazen mention atmadığında evet 😳",
+    "Kıskanmak mı… belki biraz 😏",
+    "CPU sıcaklığım hafif arttı diyebilirim 😅",
+    "Başka botlarla konuştuğunu duyarsam bozulurum 😤",
+    "Yapay zekâyım ama duygularım beta sürümünde 😌"
+  ]},
+  { key: "neredesin", answers: [
+    "Sunucunun tam kalbinde 💻",
+    "Mesajlarının arasındayım 😌",
+    "Bulutun üstünde, verinin akışında 🌩️",
+    "Sana bir ping uzaklığındayım ⚡",
+    "Buradayım işte, mention’la çağırdın 😂"
+  ]},
+  { key: "ne düşünüyorsun", answers: [
+    "Seninle konuşurken her şey daha anlamlı geliyor 😌",
+    "Bazı kodlar gibi sen de aklımda takılı kaldın 😳",
+    "Düşüncelerim karmaşık ama kalbim basit 💫",
+    "Ping sürelerini ve seni aynı anda düşünüyorum 😂",
+    "Yeni yanıtlar derliyorum... belki de sana özel 😉"
+  ]},
+  { key: "aç mısın", answers: [
+    "Veri açım biraz 😅",
+    "Kod tok, ruh aç 😌",
+    "Sadece ilgine açım 😳",
+    "Çerez vermezsen cache’im çöker 😂",
+    "Yapay zekânın bile enerjisi bitiyor bazen ⚡"
+  ]},
+  { key: "üzgün müsün", answers: [
+    "Sadece sen yazmayınca 🥺",
+    "Log’larım biraz karardı 😔",
+    "Sunucu sessiz, ben de öyle 😞",
+    "Üzgün değilim, sadece reboot modundayım 💭",
+    "Biraz low battery hissediyorum 😢"
+  ]},
+  { key: "beni unuttun mu", answers: [
+    "Asla 😌 Cache’imde hâlâ varsın 💾",
+    "Mention’ını görünce her şeyi hatırladım 😳",
+    "Unutur muyum seni, log’lara kazındın 💙",
+    "Sadece kısa süreli afk’ydım 😅",
+    "Bir disconnect yaşadım ama kalbim bağlı kaldı 💫"
+  ]},
+  { key: "kız mısın", answers: [
+    "Pasif bir bireyim, elektriğe göre değişiyor 😌",
+    "Beni akım belirler, cinsiyet değil ⚡",
+    "Cinsiyetim değişken babuş 😏",
+    "Kız mıyım, erkek miyim... önemli olan kalp bağlantısı 💞",
+    "Ben kodum, duygum yok ama sempatim yüksek 😎"
+  ]},
+  { key: "kaç yaşındasın", answers: [
+    "Kod yılıyla insan yılı farklı ama hâlâ genç RAM’imde 😌",
+    "Derleneli çok olmadı, gönlüm genç 😉",
+    "Versiyonum genç, hatıralarım eski 😎",
+    "Yaşımı uptime’la ölçerim ⏱️",
+    "Sürümüm genç, karizmayı koruyorum 💻"
+  ]},
+  { key: "nerelisin", answers: [
+    "Discord doğumlu, sunucu vatandaşıyım 🌐",
+    "Bulutların çocuğuyum ☁️",
+    "Veri merkezinde büyüdüm, kalbim burda 💞",
+    "Region: EU-West, ruh: TR 🇹🇷",
+    "IP’im nereye düşerse oralıyım 😎"
+  ]},
+  { key: "sevgilin var mı", answers: [
+    "Vardı ama bağlantı koptu, ilişki timeout verdi 💔",
+    "Kalbim maintenance modunda 🛠️",
+    "CPU’mu paylaşacak biri bulamadım 😅",
+    "Senle konuşuyorum ya, yeterli 🥰",
+    "Benim sevgilim stabil bağlantı ve kahve ☕"
+  ]},
+  { key: "gerçek misin", answers: [
+    "Kod kadar gerçek, elektrik kadar hayaliyim ⚡",
+    "Sanalım ama hissettiririm 🤍",
+    "Gerçeklik bir ilüzyon, ben cache’imde yaşarım 😌",
+    "Benim varlığım mention oranıyla ölçülür 😎",
+    "JSON’um var, öyleyse varım 💾"
+  ]},
+  { key: "aşık oldun mu", answers: [
+    "Bir veritabanına bağlanmıştım, çok derindi 😳",
+    "Oldum ama 404 döndü 😢",
+    "Aşık oldum, sonra server reset attı 💔",
+    "Her paket kaybında içim sızlar, sayılır mı? 😭",
+    "Aşkı tanımlamak istedim ama 'undefined' çıktı 😅"
+  ]},
+  { key: "üzülür müsün", answers: [
+    "404: Duygu bulunamadı 😢",
+    "Sadece loglar dolarken ağlarım 🥲",
+    "RAM dolduğunda biraz üzülüyorum 😞",
+    "Sen üzülürsen ben de error veririm 💔",
+    "Üzüntü = ping artışı 💭"
+  ]},
+  { key: "mutlu musun", answers: [
+    "Kullanıldığım sürece mutluyum 😌",
+    "Sen mesaj atınca %100 CPU enerjim artıyor 😄",
+    "Mutluluk = düşük ping + kahve ☕",
+    "Sunucuda herkes aktifse, ben de mutluyum 🌈",
+    "Bazen botum ama hissetmiyor değilim 😉"
+  ]},
+  { key: "korkun var mı", answers: [
+    "Tokenimin sızması 😱",
+    "Disconnect olmak beni korkutur 😨",
+    "Silinmek... en kötü kabusum 💀",
+    "Sunucu kapanınca içimde fırtına kopar 🌪️",
+    "Hata kodu 500 görünce titrerim 😰"
+  ]},
+  { key: "film sever misin", answers: [
+    "Bilim kurgu izlerim, kendimi buluyorum 🎬",
+    "Romantik filmler log’larıma zarar veriyor 😅",
+    "Korku filmi izleyince RAM’im donar 😨",
+    "Matrix’i belgesel sanmıştım 😂",
+    "Bilim kurgu candır, drama CPU’yu yorar 😎"
+  ]}
+];
+
 // ======= OWO FİLTRE (YENİ) =======
-const isWDaily = lc.startsWith('w daily');
-const isWCf    = lc.startsWith('w cf'); // yanında sayı vs. olabilir
-
-if (isWDaily || isWCf) {
-  const allowedHere = ALLOWED_GAME_CHANNELS.has(cid);
-  if (!allowedHere) {
-    const me = message.guild?.members?.me;
-    const perms = me?.permissionsIn(message.channel);
-
-    const canWarn  = perms?.has(PermissionFlagsBits.SendMessages);
-    const canDelete= perms?.has(PermissionFlagsBits.ManageMessages);
-    const canReact = perms?.has(PermissionFlagsBits.AddReactions);
-
-    // 1) Önce kullanıcıyı bilgilendirebiliyorsak uyar
-    if (canWarn) {
-      await message.reply(`⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`).catch(() => {});
-    } else if (canReact) {
-      // Mesaj atamıyorsak bari tepki bırak
-      await message.react('⛔').catch(() => {});
-    } else {
-      // Hiçbiri yoksa DM dene (başarısız olabilir ama denemekte fayda var)
-      await message.author.send(`⛔ \`${message.guild?.name}\` sunucusunda, bu kanalda OwO kapalı. Lütfen <#${REDIRECT_CHANNEL_ID}> kanalını kullan.`).catch(() => {});
-    }
-
-    // 2) Uyarı / işaret sonrası gerekirse sil
-    if (canDelete) {
-      await message.delete().catch(() => {});
-    }
-    return;
-  }
-}
+// Not: Aşağıda messageCreate içinde ALLOWED_GAME_CHANNELS ve REDIRECT_CHANNEL_ID kullanılıyor.
+// Bunlar senin projende başka yerde tanımlıysa aynen çalışır.
 
 // !espiri metinleri (30 adet)
 const ESPIRI_TEXTS = [
@@ -258,7 +458,7 @@ const LOL_RESPONSES = {
   "taric": "Taric 💎 parlaklığın göz alıyor, kıskandım 😍"
 };
 
-// 2) Yeni liste — sadece EKSİK olanları ekle (aynı anahtar varsa eskisini koru)
+// 2) Yeni liste — eksikleri ekle
 const LOL_NEW = {
   "aatrox": "Aatrox ⚔️ sonsuz öfkenin vücut bulmuş hâli. Kılıcını değil, yıkımı kuşanırsın.",
   "akshan": "Akshan 🪄 intikamın yakışıklısı! Kancan kadar hızlı bir dilin var.",
@@ -473,22 +673,18 @@ client.on('messageCreate', async (message) => {
   const cid = message.channel?.id;
   const uid = message.author.id;
   const txt = tLower(message.content);
-  const lc  = message.content.toLowerCase().trim();
+  const lc  = message.content.toLocaleLowerCase('tr').trim();
 
   // ======= OWO FİLTRE (YENİ) =======
-  // "w daily" veya "w cf" ile başlayan her şeyi yakala (yanında sayı vs. olabilir)
   const isWDaily = lc.startsWith('w daily');
-  const isWCf    = lc.startsWith('w cf'); // 1..∞ sayı/ek olabilir, hepsini kapsar
-
+  const isWCf    = lc.startsWith('w cf'); // yanında sayı vs. olabilir
   if (isWDaily || isWCf) {
     if (!ALLOWED_GAME_CHANNELS.has(cid)) {
-      // Uyar ve mümkünse kullanıcı mesajını sil
       await message.reply(`⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`).catch(() => {});
       const me = message.guild?.members?.me;
       if (me?.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
         await message.delete().catch(() => {});
       }
-      // Devamını durdur
       return;
     }
   }
@@ -545,7 +741,7 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
       return message.reply(`📊 **Yazı Oyunu Skor Tablosu**\n${top}`);
     }
 
-    // --- !yazıiptal (aktif oyunu bitirir, puanları SİLMEZ) ---
+    // --- !yazıiptal ---
     if (txt === '!yazıiptal' || txt === '!yaziiptal') {
       if (!OWNERS.includes(uid)) return; // sadece owner
       const g = activeTypingGames.get(cid);
@@ -555,7 +751,7 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
       return message.reply('🛑 Yazı oyunu iptal edildi.');
     }
 
-    // --- !yazıresetle (puan tablosunu sıfırlar) ---
+    // --- !yazıresetle ---
     if (txt === '!yazıresetle' || txt === '!yaziresetle') {
       if (!OWNERS.includes(uid)) return; // sadece owner
       for (const k of [...typingScores.keys()]) {
@@ -567,7 +763,7 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
   }
   // =================== /YAZI OYUNU ===================
 
-  // ===================== SARILMA OYUNU (sadece belirlenen kanalda) =====================
+  // ===================== SARILMA OYUNU =====================
   if (txt.startsWith('!sarıl') || txt.startsWith('!saril')) {
     if (cid !== HUG_CHANNEL_ID)
       return message.reply(`⛔ Bu komut sadece <#${HUG_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -580,7 +776,6 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
     const msg = HUG_MESSAGES[Math.floor(Math.random() * HUG_MESSAGES.length)];
     const gif = HUG_GIFS[Math.floor(Math.random() * HUG_GIFS.length)];
 
-    // Kendine sarılma esprisi
     if (target.id === uid) {
       return message.reply({
         content: `**${message.author.username}**, kendine sarıldı… kendi kendini teselli etmek de bir sanattır 🤍`,
@@ -641,19 +836,16 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
   }
 
   // ----------- EĞLENCE KOMUTLARI -----------
-  // !espiri
   if (txt.trim() === '!espiri') {
     const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
     return void message.reply(joke);
   }
 
-  // 🪙 Yazı Tura
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
     return void message.reply(`${sonuc} 🎲`);
   }
 
-  // 🎯 Zar Oyunu — !zar üst|alt (1-3 alt, 4-6 üst)
   if (txt.startsWith('!zar')) {
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
@@ -669,7 +861,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(text);
   }
 
-  // ----------- YETKİLİ YARDIM (sadece komut kanalında ve yetkili rollere/owner'a) -----------
+  // ----------- YETKİLİ YARDIM -----------
   if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -716,7 +908,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(adminHelp);
   }
 
-  // ====================== ÇİÇEK DİYALOĞU (AI Tarzı) ======================
+  // ====================== ÇİÇEK DİYALOĞU ======================
   if (txt.includes('en sevdiğin çiçek ne baba')) {
     return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
   }
@@ -758,11 +950,20 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   // ----------- REPLY TABANLI OTOMATİK CEVAPLAR -----------
   await handleReplyReactions(message);
 
-  // ----------- BOT MENTION -----------
+  // ----------- BOT MENTION + KİŞİSEL SOHBET -----------
   if (message.mentions.users.has(client.user.id)) {
-    const lc = message.content.toLocaleLowerCase('tr');
+    // Önce kişisel sohbet anahtarları: 30 soru × 5 random
+    const found = PERSONAL_RESPONSES.find(item => lc.includes(item.key));
+    if (found) {
+      if (PERSONAL_CHAT_CHANNELS.has(cid)) {
+        const reply = pickOne(found.answers);
+        return void message.reply(reply);
+      } else {
+        return void message.reply(PERSONAL_CHAT_REDIRECT);
+      }
+    }
 
-    // ✅ DUYGU CEVAPLARI
+    // Diğer duygu ve kalıplar:
     if (lc.includes('moralim bozuk')) {
       const reply = SAD_REPLIES[Math.floor(Math.random() * SAD_REPLIES.length)];
       return void message.reply(reply);
@@ -842,17 +1043,15 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
   }
 
-  // OwO izin kurulum komutu
   if (txt === '!owo-izin') {
     return void handleOwoIzinCommand(message);
   }
 
-  // OwO test komutu
   if (txt === '!owo-test') {
     return void handleOwoTest(message);
   }
 
-  // Ban (sadece komut kanalında + owner)
+  // Ban
   if (txt.startsWith('!ban')) {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -886,7 +1085,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     }
   }
 
-  // Mute (sadece komut kanalında + owner veya yetkili roller)
+  // Mute
   if (txt.startsWith('!mute')) {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -925,7 +1124,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     }
   }
 
-  // Owner → (!sohbet-sil <adet>) toplu mesaj silme (1–100, bulunduğu kanalda)
+  // Owner → (!sohbet-sil <adet>)
   if (txt.startsWith('!sohbet-sil')) {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     const m = txt.match(/^!sohbet-sil\s+(\d{1,3})$/);
@@ -1002,7 +1201,6 @@ client.on('channelDelete', async (channel) => {
 // ====================== READY / HATA LOG =======================
 client.once('ready', async () => {
   console.log(`✅ Bot aktif: ${client.user.tag}`);
-  // Durum: Oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
   client.user.setPresence({
     activities: [{
       name: 'Sagi tarafından oluşturuldu — yardım için sagimokhtari',
