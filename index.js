@@ -23,7 +23,8 @@ client.on('messageCreate', (message) => {
 
   // Biri botu etiketlediğinde cevap verir
   if (message.mentions.has(client.user)) {
-    message.reply('naber lan 😎');
+    message.reply('naber babuş 👻');
+
   }
 });
 
