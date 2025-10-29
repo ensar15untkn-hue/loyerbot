@@ -43,7 +43,22 @@ const ESPIRI_TEXTS = [
   'Şimşek, Güneş yüzeyinden daha sıcaktır. Ama elektrik faturasını görünce ben soğuyorum.',
   'Sümüklüböceklerin tuzla arası iyi değildir. Benim de ay sonuyla.',
   'Yunuslar isimleriyle çağrılabilir. Benim çağrıma sadece Wi‑Fi cevap veriyor.',
-  'Yıldızlar gördüğünde geçmişi görürsün. Spor salonunda da geçmiş formumu arıyorum.'
+  'Yıldızlar gördüğünde geçmişi görürsün. Spor salonunda da geçmiş formumu arıyorum.',
+  'Japonya’daki makineler kola verir, kalbim ise umut… bazen bozuk para üstünü veremiyor.',
+  'Karıncalar ağırlıklarının katlarını kaldırabilir. Ben de dertlerimin… bazen kaldıramıyorum.',
+  'Kahve, performansı artırır; bende artırdığı şey konuşma hızım.',
+  'İnsan vücudundaki kemiklerin yarısı eller ve ayaklardadır. Benim kodlarımın yarısı ise yorum satırı.',
+  'Suyun %70’i Dünya’yı kaplar; kalan %30’u WhatsApp grupları.',
+  'Bal arıları dans ederek yön tarif eder. Ben Google Maps ile bile kayboluyorum.',
+  'Zürafaların ses telleri var ama nadir kullanırlar. Ben de alarmı kapatınca öyleyim.',
+  'Kutup ayılarının derisi siyahtır; ben de faturaları görünce kararıyorum.',
+  'Dünya her saniye 11 kilometre hızla döner; iş günü ise yerinde sayıyor gibi.',
+  'Bir bulut tonlarca ağırlık taşıyabilir; ben ise “son bir bölüm daha”yı.',
+  'Soğan doğrarken göz yaşartır; dolar kurunu görünce de etkisi benzer.',
+  'Timsahlar dili dışarı çıkaramaz; ben de diyete başlayamıyorum.',
+  'Gözlerimiz burnumuzu görür ama beyin filtreler; ben de hataları prod’da fark ediyorum.',
+  'Kelebekler ayaklarıyla tat alır; ben aklımla tatlıyı haklı çıkarıyorum.',
+  'Ay’da rüzgâr yok; bayraklar yine de gönlümüzde dalgalanıyor.'
 ];
 
 // Küçük yardımcılar
@@ -264,5 +279,3 @@ process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
 
 // ====================== LOGIN =================================
 client.login(process.env.TOKEN);
-
-
