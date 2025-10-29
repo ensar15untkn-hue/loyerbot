@@ -114,6 +114,86 @@ const FLOWER_RESPONSES = [
   "Senin gibi birinin sevdiği çiçek de özel olurdu zaten 🌼"
 ];
 
+// ====================== LOL KARAKTER DİYALOĞU VERİLERİ ======================
+const LOL_RESPONSES = {
+  "zed": "Ah, Zed 💀 gölgelerin babasıyımdır zaten 😏",
+  "yasuo": "Yasuo mu? Rüzgar seninle olsun, ama FF 15 olmasın 🌪️",
+  "yone": "Yone... kardeşim ama hâlâ gölgeme basamaz 😎",
+  "ahri": "Ahri 🦊 o gözlerle herkes kaybolur babuş.",
+  "akali": "Akali 🔪 sessiz, ölümcül ve karizmatik. onayladım.",
+  "lux": "Lux 🌟 ışığın kızı, moralin bozuksa ışığı yak 😌",
+  "jinx": "Jinx 🎇 deliliğin sesi! kaosun tatlı hali.",
+  "caitlyn": "Caitlyn 🎯 her mermi sayılır, iyi nişan babuş.",
+  "vi": "Vi 👊 tokadı sağlam atarsın, dikkat et mouse kırılmasın.",
+  "thresh": "Thresh ⚰️ ruh koleksiyonumda sana da yer var 😈",
+  "lee sin": "Lee Sin 🥋 kör ama carry atan tek adam.",
+  "blitzcrank": "Blitz 🤖 hook tutarsa rakip oyun kapatır 😏",
+  "morgana": "Morgana 🌑 zincirleri kır babuş, kaderini yaz.",
+  "kayle": "Kayle 👼 adaletin meleği, ama sabırlı oyna 😅",
+  "ezreal": "Ezreal ✨ macera seni çağırıyor, loot’u bana bırak.",
+  "darius": "Darius ⚔️ baltayı konuşturuyorsun yine 😎",
+  "garen": "Garen 💙 Demaciaaaa! klasik ama asil seçim.",
+  "vayne": "Vayne 🏹 karanlıkta av, sabah efsane 💅",
+  "teemo": "Teemo 😡 seninle konuşmuyorum... gözüm twitchliyor.",
+  "riven": "Riven ⚔️ kırılmış ama hâlâ güçlü, tıpkı kalbim gibi.",
+  "irelia": "Irelia 💃 bıçak dansı estetik ama ölümcül 💀",
+  "kayn": "Kayn 😏 karanlık taraf mı aydınlık taraf mı babuş?",
+  "aatrox": "Aatrox ⚔️ sonsuz savaşın çocuğu. sabah 5’te bile tilt.",
+  "ekko": "Ekko ⏳ zamanı bük, geçmişi düzeltme, geleceği yaz babuş.",
+  "veigar": "Veigar 😈 kısa boy, büyük ego. saygı duyarım.",
+  "sett": "Sett 💪 karizma tavan, ama saç jölesine dikkat 😏",
+  "mordekaiser": "Mordekaiser 💀 realmime hoş geldin babuş.",
+  "zoe": "Zoe 🌈 tatlı ama baş belası, dikkat et 😜",
+  "soraka": "Soraka 🌿 iyileştir ama kalbini kaptırma 💫",
+  "draven": "Draven 🎯 ego level 9000, senin gibi havalı babuş.",
+  "ashe": "Ashe ❄️ buz gibi ama cool, klasik support hedefi 😏",
+  "malphite": "Malphite 🪨 duygusuz ama sağlam. taştan yapılmış babuş.",
+  "singed": "Singed ☠️ koşarak zehir bırak, arkanı dönme 😭",
+  "heimerdinger": "Heimer 🧠 kulelerinle bile konuşurum bazen 😂",
+  "zyra": "Zyra 🌿 doğa güzel ama sen tehlikelisin babuş.",
+  "brand": "Brand 🔥 yangın var babuş, sen mi yaktın?",
+  "annie": "Annie 🧸 tibbers nerede?! çocuğa dikkat et 😱",
+  "nasus": "Nasus 🐕 300 stack mi? yoksa afk farm mı?",
+  "renekton": "Renekton 🐊 kardeşin Nasus seni hâlâ affetmedi 😬",
+  "karma": "Karma 🕉️ dengede kal, yoksa ben dengesizleşirim 😌",
+  "syndra": "Syndra ⚫ toplar havada uçuşsun, ama lag olmasın 😭",
+  "nidalee": "Nidalee 🐆 mızraklar can yakıyor, sakin ol vahşi kedi.",
+  "xayah": "Xayah 🪶 Rakan olmadan da güzelsin 😏",
+  "rakan": "Rakan 💃 Xayah olmadan da flört ediyorsun, bravo 😂",
+  "jax": "Jax 🪓 lamba sopasıyla dövüşen adam... saygı duyuyorum.",
+  "pantheon": "Pantheon 🛡️ tanrılara kafa tutuyorsun, kahramansın babuş.",
+  "talon": "Talon 🔪 sessizce gelir, reportları toplar 😎",
+  "pyke": "Pyke ⚓ öldürdüklerini saymamışsın, ben tuttum 😏",
+  "katarina": "Katarina 🔪 döner bıçakları ustalıkla kullanıyorsun 😌",
+  "leblanc": "LeBlanc 🎭 sahtekar, ama stilin yerinde 😏",
+  "lucian": "Lucian 🔫 çift tabancalı adalet, hızlı ve öfkeli.",
+  "senna": "Senna 💀 karanlıkta ışık arayan, asil bir ruh.",
+  "samira": "Samira 💋 stilli, havalı, ölümlülerin en güzeli.",
+  "viego": "Viego 💔 karısını hâlâ unutmamış, ben bile üzüldüm.",
+  "lillia": "Lillia 🦌 tatlısın ama rüyalar korkutucu 😴",
+  "kindred": "Kindred 🐺 ölüm bile seninle dost olmuş babuş.",
+  "yuumi": "Yuumi 📚 kedisin diye sevimlisin ama can sıkıyorsun 😾",
+  "graves": "Graves 💨 puro + pompalı = tarz sahibi babuş.",
+  "warwick": "Warwick 🐺 kokunu aldım, kanın taze 😈",
+  "shaco": "Shaco 🤡 kaosu sevdim ama bana yaklaşma 😱",
+  "nocturne": "Nocturne 🌑 karanlıkta fısıldayan kabus, hoş geldin 😨",
+  "fiddlesticks": "Fiddle 🌾 sessiz ol... o seni duyuyor 😰",
+  "olaf": "Olaf 🪓 rage mode açıldı, dikkat et elini kesme 😅",
+  "shen": "Shen 🌀 sabır ustası, teleportun zamanında 👍",
+  "rammus": "Rammus 🐢 okkeeeey 💨",
+  "amumu": "Amumu 😭 gel sarılalım dostum.",
+  "tryndamere": "Tryndamere ⚔️ ölmüyorsun, tilt ediyorsun 😭",
+  "nunu": "Nunu ☃️ en tatlı jungler, kartopu büyüklüğünde ❤️",
+  "illaoi": "Illaoi 🐙 tentakül tanrıçası, güçlü ama sert 😬",
+  "yorick": "Yorick ⚰️ mezarlıkta bile yalnız değilsin bro 😔",
+  "tristana": "Tristana 💥 küçük ama patlayıcı!",
+  "ziggs": "Ziggs 💣 patlamayı severim ama sen fazla seviyorsun 😂",
+  "cassiopeia": "Cassiopeia 🐍 tehlikeli bakışlar, taş kesildim resmen 😳",
+  "nami": "Nami 🌊 su gibi güzel, ama dalgan çok sert 😅",
+  "seraphine": "Seraphine 🎤 güzel ses, ama biraz az konuş 😏",
+  "taric": "Taric 💎 parlaklığın göz alıyor, kıskandım 😍"
+};
+
 // Küçük yardımcılar
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
@@ -279,17 +359,11 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 
   // “@bot en sevdiğim çiçek ...”
   if (/en sevdiğim çiçek/i.test(txt)) {
-    // mention'ları çıkarıp daha temiz bir metinden adı yakalayalım
     const raw = message.content.replace(/<@!?\d+>/g, '').trim();
     const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
-    const userSaid = (m && m[1] ? m[1] : '').trim().replace(/\s+/g,' ').replace(/[.,!?]+$/,''); // son noktalama temizle
-
-    // listede var mı?
+    const userSaid = (m && m[1] ? m[1] : '').trim().replace(/\s+/g,' ').replace(/[.,!?]+$/,'');
     const found = FLOWER_LIST.find(f => tLower(userSaid).includes(tLower(f)));
-
-    // rastgele yanıt seç
     const replyText = FLOWER_RESPONSES[Math.floor(Math.random() * FLOWER_RESPONSES.length)];
-
     if (found) {
       return void message.reply(replyText);
     } else {
@@ -299,12 +373,33 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   }
   // ==================== / ÇİÇEK DİYALOĞU ======================
 
+  // ====================== LOL KARAKTER DİYALOĞU ======================
+  // “@Fang Yuan Bot en sevdiğin lol karakteri ne”
+  if (txt.includes('en sevdiğin lol karakteri') || txt.includes('en sevdigin lol karakteri')) {
+    return void message.reply('En sevdiğim karakter **Zed** 💀 babasıyımdır; senin mainin ne?');
+    // kullanıcı devamında "mainim ..." diyecek
+  }
+
+  // “@Fang Yuan Bot mainim <şampiyon>”
+  if (/mainim\s+([a-zA-Zçğıöşü\s]+)/i.test(txt)) {
+    const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s]+)/i);
+    const champ = match ? match[1].trim().toLowerCase() : null;
+    if (champ) {
+      const found = Object.keys(LOL_RESPONSES).find(c => champ.includes(c));
+      if (found) {
+        return void message.reply(LOL_RESPONSES[found]);
+      } else {
+        return void message.reply(`Ooo ${champ}? Yeni meta mı çıktı babuş 😏`);
+      }
+    }
+  }
+  // ==================== / LOL KARAKTER DİYALOĞU ======================
+
   // ----------- REPLY TABANLI OTOMATİK CEVAPLAR -----------
   await handleReplyReactions(message);
 
   // ----------- BOT MENTION -----------
   if (message.mentions.users.has(client.user.id)) {
-    // Özel cümleler mention ile gelirse sadece bunlara cevap ver
     if (txt.includes('teşekkürler sen'))     return void message.reply('iyiyim teşekkürler babuş👻');
     if (txt.includes('teşekkürler'))         return void message.reply('rica ederim babuş👻');
     if (txt.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
@@ -313,13 +408,11 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     if (/(günaydın|gunaydin)/.test(txt))     return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
     if (/(iyi akşamlar|iyi aksamlar)/.test(txt)) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
 
-    // Sadece @bot yazıldıysa (başka metin yoksa)
     const onlyMention = message.content.replace(/<@!?\d+>/g, '').trim().length === 0;
     if (onlyMention) return void message.reply('naber babuş 👻');
   }
 
   // ----------- İSTATİSTİK KOMUTLARI -----------
-  // Ses Liderliği
   if (txt === '!ses') {
     if (!gid) return;
     const data = [];
@@ -330,7 +423,6 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(`🎙️ **Ses Liderliği Paneli**\n${top}`);
   }
 
-  // Kişisel Ses Süresi
   if (txt === '!sesme') {
     if (!gid) return;
     const k = vKey(gid, uid);
@@ -340,7 +432,6 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(`🎧 **${message.author.username}**, toplam ses süren: **${formatTime(totalSec)}** ⏱️`);
   }
 
-  // Sohbet Liderliği
   if (txt === '!sohbet') {
     if (!gid) return;
     const arr = [];
@@ -354,7 +445,6 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   }
 
   // ----------- OWNER KOMUTLARI -----------
-  // Ses Sıfırla
   if (txt === '!ses-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) {
@@ -365,7 +455,6 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(`🎙️ ${label} — Ses verileri sıfırlandı!`);
   }
 
-  // Sohbet Sıfırla
   if (txt === '!sohbet-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) for (const k of [...messageCount.keys()]) if (k.startsWith(`${gid}:`)) messageCount.delete(k);
