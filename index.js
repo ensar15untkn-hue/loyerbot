@@ -197,7 +197,54 @@ const LOL_RESPONSES = {
   "taric": "Taric 💎 parlaklığın göz alıyor, kıskandım 😍"
 };
 
-// Küçük yardımcılar
+// ====================== YAZI OYUNU ======================
+const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
+const typingScores = new Map();      // gid:uid -> puan
+const TYPING_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
+
+const TYPING_SENTENCES = [
+  'Gölgelerin arasından doğan ışığa asla sırtını dönme.',
+  'Bugün, dünün pişmanlıklarını değil yarının umutlarını büyüt.',
+  'Kahveni al, hedeflerini yaz ve başla.',
+  'Rüzgârın yönünü değiştiremezsin ama yelkenini ayarlayabilirsin.',
+  'Sabır, sessizliğin en yüksek sesidir.',
+  'Küçük adımlar büyük kapıları açar.',
+  'Düşmeden koşmayı kimse öğrenemez.',
+  'Bir plan, rastgeleliğin panzehiridir.',
+  'Zaman, hak edeni ortaya çıkarır.',
+  'Hayal kurmak başlangıçtır; emek bitiriştir.',
+  'Başlamak için mükemmel olman gerekmez, ama mükemmel olmak için başlaman gerekir.',
+  'Düşlediğin şey için çalışmaya başla, çünkü kimse senin yerine yapmayacak.',
+  'Her başarısızlık bir sonraki denemeye hazırlıktır.',
+  'Kendine inan, çünkü en büyük güç orada gizlidir.',
+  'İmkansız sadece biraz daha zamana ihtiyaç duyan şeydir.',
+  'Cesaret, korkuya rağmen devam edebilmektir.',
+  'Bir hedefin yoksa, hiçbir rüzgar işine yaramaz.',
+  'Mutluluk, küçük şeyleri fark ettiğinde başlar.',
+  'Karanlık olmadan yıldızları göremezsin.',
+  'Büyük düşün, küçük adımlarla ilerle.',
+  'Zaman seni değil, sen zamanı yönet.',
+  'Bugün atılan adım, yarının başarısıdır.',
+  'Azim, başarının en sessiz anahtarıdır.',
+  'Hayat bir oyun değil, ama bazen oynamayı öğrenmelisin.',
+  'Denemekten korkan, kaybetmeyi çoktan seçmiştir.',
+  'Bir gün değil, her gün çalış.',
+  'Düşün, planla, uygula, başla.',
+  'Motivasyon biter ama disiplin kalır.',
+  'Her yeni gün, bir fırsattır.',
+  'Kendin ol, çünkü herkes zaten alınmış.'
+];
+
+function normalizeTR(s) {
+  return String(s || '')
+    .toLocaleLowerCase('tr')
+    .replace(/[.,;:!?'"`~^_()[\]{}<>/@#$%&=+\\|-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function scoreKey(gid, uid){ return `${gid}:${uid}`; }
+
+// ====================== KÜÇÜK YARDIMCILAR ======================
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
 const inCommandChannel = (message) => message.channel?.id === COMMAND_CHANNEL_ID;
@@ -260,6 +307,80 @@ client.on('messageCreate', async (message) => {
   const cid = message.channel?.id;
   const uid = message.author.id;
   const txt = tLower(message.content);
+
+  // ===================== YAZI OYUNU (sadece belirlenen kanalda) =====================
+  if (cid === TYPING_CHANNEL_ID) {
+    // --- !yazıoyunu ---
+    if (txt === '!yazıoyunu' || txt === '!yazioyunu' || txt === '!yazi-oyunu') {
+      if (activeTypingGames.has(cid)) {
+        return message.reply('⏳ Bu kanalda zaten aktif bir yazı oyunu var.');
+      }
+      const sentence = TYPING_SENTENCES[Math.floor(Math.random() * TYPING_SENTENCES.length)];
+      await message.channel.send(
+`⌨️ **Yazı Oyunu** başlıyor!
+Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
+> ${sentence}
+⏱️ Süre: **60 saniye**`
+      );
+      const timeoutId = setTimeout(() => {
+        if (activeTypingGames.has(cid)) {
+          activeTypingGames.delete(cid);
+          message.channel.send('⏰ Süre doldu! Kimse doğru yazamadı.');
+        }
+      }, 60_000);
+      activeTypingGames.set(cid, { sentence, startedAt: Date.now(), timeoutId });
+      return;
+    }
+
+    // --- Aktif oyunda doğru yazanı tespit et ---
+    if (activeTypingGames.has(cid)) {
+      if (!txt.startsWith('!')) {
+        const game = activeTypingGames.get(cid);
+        const target = normalizeTR(game.sentence);
+        const guess  = normalizeTR(message.content);
+        if (guess && guess === target) {
+          clearTimeout(game.timeoutId);
+          activeTypingGames.delete(cid);
+          const key = scoreKey(gid, uid);
+          typingScores.set(key, (typingScores.get(key) || 0) + 3);
+          return void message.channel.send(`🏆 **${message.author}** doğru yazdı ve **+3 puan** kazandı!\n> _${game.sentence}_`);
+        }
+      }
+    }
+
+    // --- !yazıpuan ---
+    if (txt === '!yazıpuan' || txt === '!yazipuan' || txt === '!yazi-puan') {
+      const rows = [];
+      for (const [k, pts] of typingScores.entries()) {
+        if (k.startsWith(gid + ':')) rows.push({ uid: k.split(':')[1], pts });
+      }
+      if (!rows.length) return message.reply('🏁 Henüz yazı oyunu puanı yok.');
+      rows.sort((a,b) => b.pts - a.pts);
+      const top = rows.slice(0,10).map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
+      return message.reply(`📊 **Yazı Oyunu Skor Tablosu**\n${top}`);
+    }
+
+    // --- !yazıiptal (aktif oyunu bitirir, puanları SİLMEZ) ---
+    if (txt === '!yazıiptal' || txt === '!yaziiptal') {
+      if (!OWNERS.includes(uid)) return; // sadece owner
+      const g = activeTypingGames.get(cid);
+      if (!g) return message.reply('❌ Bu kanalda aktif yazı oyunu yok.');
+      clearTimeout(g.timeoutId);
+      activeTypingGames.delete(cid);
+      return message.reply('🛑 Yazı oyunu iptal edildi.');
+    }
+
+    // --- !yazıresetle (puan tablosunu sıfırlar) ---
+    if (txt === '!yazıresetle' || txt === '!yaziresetle') {
+      if (!OWNERS.includes(uid)) return; // sadece owner
+      for (const k of [...typingScores.keys()]) {
+        if (k.startsWith(gid + ':')) typingScores.delete(k);
+      }
+      const label = OWNER_LABEL[uid] || 'hayhay';
+      return message.reply(`📉 ${label} — Yazı oyunu puan tablosu sıfırlandı!`);
+    }
+  }
+  // =================== /YAZI OYUNU ===================
 
   // Sohbet liderliği sayacı (sadece belirlenen kanal)
   if (gid && cid === SOHBET_KANAL_ID) {
@@ -355,12 +476,10 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   }
 
   // ====================== ÇİÇEK DİYALOĞU (AI Tarzı) ======================
-  // “@bot en sevdiğin çiçek ne baba”
   if (txt.includes('en sevdiğin çiçek ne baba')) {
     return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
   }
 
-  // “@bot en sevdiğim çiçek ...”
   if (/en sevdiğim çiçek/i.test(txt)) {
     const raw = message.content.replace(/<@!?\d+>/g, '').trim();
     const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
@@ -377,13 +496,10 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   // ==================== / ÇİÇEK DİYALOĞU ======================
 
   // ====================== LOL KARAKTER DİYALOĞU ======================
-  // “@Fang Yuan Bot en sevdiğin lol karakteri ne”
   if (txt.includes('en sevdiğin lol karakteri') || txt.includes('en sevdigin lol karakteri')) {
     return void message.reply('En sevdiğim karakter **Zed** 💀 babasıyımdır; senin mainin ne?');
-    // kullanıcı devamında "mainim ..." diyecek
   }
 
-  // “@Fang Yuan Bot mainim <şampiyon>”
   if (/mainim\s+([a-zA-Zçğıöşü\s]+)/i.test(txt)) {
     const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s]+)/i);
     const champ = match ? match[1].trim().toLowerCase() : null;
@@ -403,9 +519,9 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 
   // ----------- BOT MENTION -----------
   if (message.mentions.users.has(client.user.id)) {
-
-    // 👉 Gay / Lez sorusu — TR küçük/büyük ve ı/i varyantlarını yakala
     const lc = message.content.toLocaleLowerCase('tr');
+
+    // 👉 Gay / Lez sorusu
     if (/(gay ?m[iı]sin|gaym[iı]s[iı]n|lez ?m[iı]sin|lezbiyen ?m[iı]sin|lezm[iı]s[iı]n)/i.test(lc)) {
       return void message.reply({
         content: 'hmmmm… düşünmem lazım 😶‍🌫️ sanırım gayım… ne bileyim ben 🤔',
