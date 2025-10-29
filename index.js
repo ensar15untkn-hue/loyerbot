@@ -53,88 +53,37 @@ const ADMIN_HELP_ALLOWED_ROLES = new Set([
   '1268595626258595853'
 ]);
 
-// ====================== OWO KISMI (YENİ) =======================
-// OwO komutlarına izinli kanallar
-const ALLOWED_GAME_CHANNELS = new Set([
-  '1369332479462342666', // ana oyun kanalı
-  '1268595972028760137'  // ikinci izinli kanal
-]);
-// Yönlendirme kanalı (uyarı mesajında mention)
-const REDIRECT_CHANNEL_ID = '1369332479462342666';
+// ======= OWO FİLTRE (YENİ) =======
+const isWDaily = lc.startsWith('w daily');
+const isWCf    = lc.startsWith('w cf'); // yanında sayı vs. olabilir
 
-// (Opsiyonel) OwO bot kullanıcı ID'si — izin kurulum komutu için gerekli.
-// OwO botunun ID'sini buraya gir (ör: '408785106942164992' eski OwO’dur; kendi sunucunda doğrula!)
-const OWOBOT_ID = 'PUT_OWO_BOT_ID_HERE';
+if (isWDaily || isWCf) {
+  const allowedHere = ALLOWED_GAME_CHANNELS.has(cid);
+  if (!allowedHere) {
+    const me = message.guild?.members?.me;
+    const perms = me?.permissionsIn(message.channel);
 
-// Sunucuda tüm metin kanallarını dolaşıp, OwO için
-// izinli kanallarda "SendMessages" ALLOW, diğerlerinde DENY yapar.
-async function enforceOwOPermissions(guild) {
-  if (!OWOBOT_ID || OWOBOT_ID === 'PUT_OWO_BOT_ID_HERE') return '⚠️ OWOBOT_ID tanımlı değil.';
-  try {
-    // Botun kanal izinlerini yönetebildiğinden emin olalım
-    const me = guild.members.me;
-    if (!me?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
-      return '⛔ Gerekli yetki yok: ManageChannels';
+    const canWarn  = perms?.has(PermissionFlagsBits.SendMessages);
+    const canDelete= perms?.has(PermissionFlagsBits.ManageMessages);
+    const canReact = perms?.has(PermissionFlagsBits.AddReactions);
+
+    // 1) Önce kullanıcıyı bilgilendirebiliyorsak uyar
+    if (canWarn) {
+      await message.reply(`⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`).catch(() => {});
+    } else if (canReact) {
+      // Mesaj atamıyorsak bari tepki bırak
+      await message.react('⛔').catch(() => {});
+    } else {
+      // Hiçbiri yoksa DM dene (başarısız olabilir ama denemekte fayda var)
+      await message.author.send(`⛔ \`${message.guild?.name}\` sunucusunda, bu kanalda OwO kapalı. Lütfen <#${REDIRECT_CHANNEL_ID}> kanalını kullan.`).catch(() => {});
     }
 
-    let changed = 0, skipped = 0;
-    for (const [id, channel] of guild.channels.cache) {
-      if (!channel?.isTextBased?.()) continue;
-
-      const allowHere = ALLOWED_GAME_CHANNELS.has(id);
-      const perms = channel.permissionOverwrites;
-
-      // mevcut overwrite
-      const current = perms.cache.get(OWOBOT_ID);
-      const wantAllow = allowHere ? true : false;
-
-      // Ayar zaten istenen gibi ise atla
-      if (current) {
-        const hasAllow = current.allow.has(PermissionFlagsBits.SendMessages);
-        const hasDeny  = current.deny.has(PermissionFlagsBits.SendMessages);
-
-        if (wantAllow && hasAllow && !hasDeny) { skipped++; continue; }
-        if (!wantAllow && hasDeny && !hasAllow) { skipped++; continue; }
-      }
-
-      // Yazma iznini izinli kanallarda ALLOW, diğerlerinde DENY
-      await channel.permissionOverwrites.edit(
-        OWOBOT_ID,
-        wantAllow
-          ? { SendMessages: true }   // allow
-          : { SendMessages: false }  // deny
-      ).catch(() => null);
-
-      changed++;
+    // 2) Uyarı / işaret sonrası gerekirse sil
+    if (canDelete) {
+      await message.delete().catch(() => {});
     }
-    return `✅ OwO izinleri uygulandı. Değiştirilen: ${changed}, atlanan: ${skipped}`;
-  } catch (e) {
-    console.error('enforceOwOPermissions error:', e);
-    return '⛔ İzin kurulumu sırasında hata oluştu.';
+    return;
   }
-}
-
-// !owo-izin — Owner komutu: OwO kanal izinlerini topluca uygular
-async function handleOwoIzinCommand(message) {
-  const gid = message.guild?.id;
-  const uid = message.author.id;
-  if (!gid) return;
-  if (!OWNERS.includes(uid)) return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
-  if (!inCommandChannel(message)) {
-    return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
-  }
-  const res = await enforceOwOPermissions(message.guild);
-  return message.reply(res);
-}
-
-// !owo-test — bulunduğun kanalda OwO mesajlarına izin var mı kontrol
-function handleOwoTest(message) {
-  const allowed = ALLOWED_GAME_CHANNELS.has(message.channel.id);
-  return message.reply(
-    allowed
-      ? '✅ Bu kanalda OwO komutlarına **izin var**.'
-      : `⛔ Bu kanalda OwO komutlarına **izin yok**. Lütfen <#${REDIRECT_CHANNEL_ID}> kanalını kullan.`
-  );
 }
 
 // !espiri metinleri (30 adet)
