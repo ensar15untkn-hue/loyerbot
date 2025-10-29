@@ -84,6 +84,36 @@ const ESPIRI_TEXTS = [
   'Ay’da rüzgâr yok; bayraklar yine de gönlümüzde dalgalanıyor.'
 ];
 
+// ====================== ÇİÇEK DİYALOĞU VERİLERİ ======================
+const FLOWER_LIST = [
+  'gül','lale','papatya','orkide','zambak','menekşe','karanfil','nergis','sümbül','yasemin',
+  'şebboy','frezya','çiğdem','kamelya','begonya','kaktüs','lavanta','hanımeli','nilüfer','akasya',
+  'kasımpatı','manolya','gardenya','ortanca','fulya','sardunya','melisa','gülhatmi','mor salkım',
+  'pembe karanfil','beyaz gül','kırmızı gül','mavi orkide','tulip','daffodil','sunflower','lotus',
+  'iris','aster','kardelen','şakayık','zerrin','yılbaşı çiçeği','camgüzeli','glayöl','kar çiçeği',
+  'itır','mine','begonvil','nane çiçeği','petunya','fitonya','antoryum','orkisya','fırfır çiçeği',
+  'papatyagiller','melati','süsen','çiçekli kaktüs','bambu çiçeği','kudret narı çiçeği',
+  'leylak','ağaç minesi','filbaharı','ateş çiçeği','sarmaşık','zehra çiçeği','aloe çiçeği',
+  'yaban gülü','gelincik','defne çiçeği','sümbülteber','agnus','mimoza','çiçekli sarmaşık',
+  'dağ laleleri','krizantem','akgül','portakal çiçeği','limon çiçeği','yenibahar çiçeği',
+  'barış çiçeği','gelin çiçeği','beyaz orkide','mavi menekşe','zümbül','yaban sümbül','narcissus',
+  'vadi zambağı','tropik orkide','sakura','çiçek açan kaktüs','mine çiçeği','orkidya','çiçekçi gülü',
+  'zarif orkide','badem çiçeği','nergiz','fulya çiçeği'
+];
+
+const FLOWER_RESPONSES = [
+  "Gerçekten çok güzel bir çiçek 🌺 Evimin salonuna çok yakışır gibi!",
+  "Ooo bu çiçeği ben de severim babuş 🌼 Rengiyle huzur veriyor insana.",
+  "Ne zarif bir seçim 🌷 Tam senlik bir çiçek bence.",
+  "Bu çiçeği görünce aklıma bahar geliyor 🌸 içim ısınıyor!",
+  "Vay be… güzel seçim 😎 Kokusu burnuma geldi sanki.",
+  "O çiçek var ya… anlatılmaz yaşanır 🌹",
+  "Benim bile moralim düzeldi şu ismi duyunca 🌻",
+  "Ah o çiçeğin rengi… sabah kahvesi gibi iyi gelir 💐",
+  "Harika bir tercih ✨ Böyle zevke şapka çıkarılır.",
+  "Senin gibi birinin sevdiği çiçek de özel olurdu zaten 🌼"
+];
+
 // Küçük yardımcılar
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
@@ -240,6 +270,34 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 `;
     return void message.reply(adminHelp);
   }
+
+  // ====================== ÇİÇEK DİYALOĞU (AI Tarzı) ======================
+  // “@bot en sevdiğin çiçek ne baba”
+  if (txt.includes('en sevdiğin çiçek ne baba')) {
+    return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
+  }
+
+  // “@bot en sevdiğim çiçek ...”
+  if (/en sevdiğim çiçek/i.test(txt)) {
+    // mention'ları çıkarıp daha temiz bir metinden adı yakalayalım
+    const raw = message.content.replace(/<@!?\d+>/g, '').trim();
+    const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
+    const userSaid = (m && m[1] ? m[1] : '').trim().replace(/\s+/g,' ').replace(/[.,!?]+$/,''); // son noktalama temizle
+
+    // listede var mı?
+    const found = FLOWER_LIST.find(f => tLower(userSaid).includes(tLower(f)));
+
+    // rastgele yanıt seç
+    const replyText = FLOWER_RESPONSES[Math.floor(Math.random() * FLOWER_RESPONSES.length)];
+
+    if (found) {
+      return void message.reply(replyText);
+    } else {
+      const nameForEcho = userSaid || 'bu çiçeği';
+      return void message.reply(`Ooo ${nameForEcho} mi diyorsun? 🌼 ${replyText}`);
+    }
+  }
+  // ==================== / ÇİÇEK DİYALOĞU ======================
 
   // ----------- REPLY TABANLI OTOMATİK CEVAPLAR -----------
   await handleReplyReactions(message);
