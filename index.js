@@ -297,7 +297,11 @@ client.on('channelDelete', async (channel) => {
 });
 
 // ====================== READY / HATA LOG =======================
-client.once('ready', () => console.log(`✅ Bot aktif: ${client.user.tag}`));
+client.once('ready', () => {
+  console.log(`✅ Bot aktif: ${client.user.tag}`);
+  // Durum: Oyun oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
+  client.user.setActivity('Sagi tarafından oluşturuldu — yardım için sagimokhtari', { type: 0 });
+});
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
 
