@@ -4,8 +4,6 @@ const {
   Client, GatewayIntentBits, AuditLogEvent,
   ActivityType, PermissionFlagsBits
 } = require('discord.js');
-const fs   = require('fs');
-const path = require('path');
 
 // ====================== WEB SUNUCUSU (Render) =================
 const app = express();
@@ -204,129 +202,6 @@ const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
 const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some(r => roleSet.has(r.id));
 const inCommandChannel = (message) => message.channel?.id === COMMAND_CHANNEL_ID;
 
-// ====================== PROFANİTE FİLTRESİ ======================
-// Klasör ve dosya yolları
-const FLT_DIR   = path.join(__dirname, 'filters');
-const BAD_PATH  = path.join(FLT_DIR, 'badwords.json');    // ağır küfürler
-const WHITE_PATH= path.join(FLT_DIR, 'whitelist.json');   // izinli kelimeler (örn: lan, salak vb.)
-const EXC_PATH  = path.join(FLT_DIR, 'exceptions.json');  // yanlış pozitifler (örn: ankara, amcam)
-
-function safeLoad(p, fallback) {
-  try {
-    if (!fs.existsSync(p)) return fallback;
-    const arr = JSON.parse(fs.readFileSync(p, 'utf8'));
-    return Array.isArray(arr) ? arr.map(s => String(s).toLocaleLowerCase('tr')) : fallback;
-  } catch { return fallback; }
-}
-
-let BADWORDS   = safeLoad(BAD_PATH,   []);                 // bunu sen dolduracaksın
-let WHITELIST  = safeLoad(WHITE_PATH, ['lan']);            // örnek
-let EXCEPTIONS = safeLoad(EXC_PATH,   ['ankara','amcam']); // örnek
-
-function normalizeText(t) {
-  if (!t) return '';
-  let s = t.toLocaleLowerCase('tr')
-    .replace(/[@]/g,'a').replace(/[!1|]/g,'i').replace(/0/g,'o')
-    .replace(/3/g,'e').replace(/4/g,'a').replace(/5/g,'s').replace(/7/g,'t').replace(/\$/g,'s')
-    .replace(/[^a-zçğıöşü0-9\s]/gi,' ')
-    .replace(/\s+/g,' ').trim();
-  return s;
-}
-
-function levenshtein(a, b) {
-  if (a === b) return 0;
-  const m = a.length, n = b.length;
-  if (!m || !n) return Math.max(m,n);
-  const dp = Array.from({length:m+1},()=>Array(n+1).fill(0));
-  for (let i=0;i<=m;i++) dp[i][0]=i;
-  for (let j=0;j<=n;j++) dp[0][j]=j;
-  for (let i=1;i<=m;i++) {
-    for (let j=1;j<=n;j++) {
-      const cost = a[i-1]===b[j-1]?0:1;
-      dp[i][j]=Math.min(dp[i-1][j]+1, dp[i][j-1]+1, dp[i-1][j-1]+cost);
-    }
-  }
-  return dp[m][n];
-}
-
-function censorForLog(raw) {
-  let txt = String(raw);
-  for (const bad of BADWORDS) {
-    try {
-      const patt = new RegExp(bad.split('').map(ch => ch===' ' ? '\\s+' : ch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join(''), 'ig');
-      txt = txt.replace(patt, (m) => (m.length<=2 ? '*'.repeat(m.length) : m[0] + '*'.repeat(m.length-2) + m[m.length-1]));
-    } catch {}
-  }
-  return txt;
-}
-
-function detectProfanity(raw, opts={fuzzy:2}) {
-  const normalized = normalizeText(raw);
-  const nospace = normalized.replace(/\s+/g,'');
-  if (!normalized) return null;
-
-  // doğrudan içerme
-  for (const bad of BADWORDS) {
-    if (!bad) continue;
-    const badNoSpace = bad.replace(/\s+/g,'');
-    if (normalized.includes(bad) || nospace.includes(badNoSpace)) {
-      return { hit:true, reason:'direct', match:bad };
-    }
-  }
-
-  // token / n-gram fuzzy
-  const tokens = normalized.split(' ').filter(Boolean);
-  for (const bad of BADWORDS) {
-    if (!bad) continue;
-    const bTokens = bad.split(' ').filter(Boolean);
-
-    if (bTokens.length === 1) {
-      const target = bTokens[0];
-      for (const t of tokens) {
-        const dist = levenshtein(t, target);
-        const maxL = Math.max(t.length, target.length);
-        if (dist <= opts.fuzzy && dist <= Math.floor(maxL*0.4)) {
-          // yanlış pozitif koruma
-          if (EXCEPTIONS.some(ex => t.includes(ex))) continue;
-          return { hit:true, reason:'fuzzy_token', match:bad, token:t, dist };
-        }
-      }
-    } else {
-      for (let i=0;i<=tokens.length-bTokens.length;i++){
-        const slice = tokens.slice(i,i+bTokens.length).join(' ');
-        const dist = levenshtein(slice, bad);
-        const maxL = Math.max(slice.length, bad.length);
-        if (dist <= opts.fuzzy && dist <= Math.ceil(maxL*0.25)) {
-          return { hit:true, reason:'fuzzy_ngram', match:bad, slice, dist };
-        }
-      }
-    }
-  }
-  return null;
-}
-
-async function reloadProfanityLists(message){
-  if (!OWNERS.includes(message.author.id)) return;
-  BADWORDS   = safeLoad(BAD_PATH,   BADWORDS);
-  WHITELIST  = safeLoad(WHITE_PATH, WHITELIST);
-  EXCEPTIONS = safeLoad(EXC_PATH,   EXCEPTIONS);
-  return message.reply('✅ Profanite listeleri yenilendi.');
-}
-
-const profanityWarns = new Map();
-async function escalateOnRepeat(message) {
-  const key = `${message.guild?.id}:${message.author.id}`;
-  const cur = (profanityWarns.get(key) || 0) + 1;
-  profanityWarns.set(key, cur);
-  try {
-    const member = await message.guild.members.fetch(message.author.id).catch(()=>null);
-    if (!member || !member.moderatable) return;
-    if (cur === 2) await member.timeout(10*60*1000,'Tekrarlı ağır ifade (2. uyarı)');
-    if (cur >= 4) await member.timeout(24*60*60*1000,'Tekrarlı ağır ifade (4. uyarı)');
-  } catch {}
-}
-// ==================== / PROFANİTE FİLTRESİ =====================
-
 // ====================== SES TAKİBİ =============================
 const joinTimes = new Map(); // gid:uid -> startedAt(ms)
 const totals    = new Map(); // gid:uid -> seconds
@@ -381,35 +256,6 @@ async function handleReplyReactions(message) {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  // ---- PROFANİTE (en başta kontrol) ----
-  if (message.content === '!badwords-yenile' && OWNERS.includes(message.author.id)) {
-    return reloadProfanityLists(message);
-  }
-  const prof = detectProfanity(message.content, { fuzzy: 2 });
-  if (prof) {
-    // whitelist sadece tek başına geçtiyse es geçmek için basit koruma
-    const n = normalizeText(message.content);
-    const onlyWL = WHITELIST.some(w => n.includes(w)) && !BADWORDS.some(b => n.includes(b));
-    if (!onlyWL) {
-      await message.delete().catch(()=>{});
-      const modLogId = process.env.MODLOG_CHANNEL_ID;
-      const modLog = message.guild?.channels.cache.get(modLogId);
-      if (modLog) {
-        modLog.send({
-          content:
-            `🚨 **Ağır ifade tespit edildi**\n` +
-            `Kullanıcı: <@${message.author.id}> (${message.author.tag})\n` +
-            `Kanal: ${message.channel}\n` +
-            `Sebep: ${prof.reason} — Eşleşme: ${prof.match}\n` +
-            `İçerik (sansürlü): ||${censorForLog(message.content)}||`
-        }).catch(()=>{});
-      }
-      await escalateOnRepeat(message);
-      return;
-    }
-  }
-  // ---- / PROFANİTE ----
-
   const gid = message.guild?.id;
   const cid = message.channel?.id;
   const uid = message.author.id;
@@ -442,25 +288,27 @@ client.on('messageCreate', async (message) => {
   }
 
   // ----------- EĞLENCE KOMUTLARI -----------
+  // !espiri
   if (txt.trim() === '!espiri') {
     const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
     return void message.reply(joke);
   }
 
+  // 🪙 Yazı Tura
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
     return void message.reply(`${sonuc} 🎲`);
   }
 
-  // 🎯 Zar Oyunu — !zar üst|alt
+  // 🎯 Zar Oyunu — !zar üst|alt (1-3 alt, 4-6 üst)
   if (txt.startsWith('!zar')) {
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
-    const secim = secimRaw.replace('ust','üst');
+    const secim = secimRaw.replace('ust','üst'); // ust -> üst normalize
     if (!['üst','alt'].includes(secim)) {
       return void message.reply('Kullanım: `!zar üst` veya `!zar alt`\nKural: **1-3 = alt**, **4-6 = üst**');
     }
-    const roll = Math.floor(Math.random() * 6) + 1;
+    const roll = Math.floor(Math.random() * 6) + 1; // 1..6
     const sonuc = roll <= 3 ? 'alt' : 'üst';
     const kazandi = secim === sonuc;
     const text = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}**
@@ -468,7 +316,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(text);
   }
 
-  // ----------- YETKİLİ YARDIM -----------
+  // ----------- YETKİLİ YARDIM (sadece komut kanalında ve yetkili rollere/owner'a) -----------
   if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -506,10 +354,13 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(adminHelp);
   }
 
-  // ====================== ÇİÇEK DİYALOĞU ======================
+  // ====================== ÇİÇEK DİYALOĞU (AI Tarzı) ======================
+  // “@bot en sevdiğin çiçek ne baba”
   if (txt.includes('en sevdiğin çiçek ne baba')) {
     return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
   }
+
+  // “@bot en sevdiğim çiçek ...”
   if (/en sevdiğim çiçek/i.test(txt)) {
     const raw = message.content.replace(/<@!?\d+>/g, '').trim();
     const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
@@ -526,9 +377,13 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   // ==================== / ÇİÇEK DİYALOĞU ======================
 
   // ====================== LOL KARAKTER DİYALOĞU ======================
+  // “@Fang Yuan Bot en sevdiğin lol karakteri ne”
   if (txt.includes('en sevdiğin lol karakteri') || txt.includes('en sevdigin lol karakteri')) {
     return void message.reply('En sevdiğim karakter **Zed** 💀 babasıyımdır; senin mainin ne?');
+    // kullanıcı devamında "mainim ..." diyecek
   }
+
+  // “@Fang Yuan Bot mainim <şampiyon>”
   if (/mainim\s+([a-zA-Zçğıöşü\s]+)/i.test(txt)) {
     const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s]+)/i);
     const champ = match ? match[1].trim().toLowerCase() : null;
@@ -548,9 +403,9 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 
   // ----------- BOT MENTION -----------
   if (message.mentions.users.has(client.user.id)) {
-    const lc = message.content.toLocaleLowerCase('tr');
 
-    // Gay / Lez sorusu (tr i/ı varyantları)
+    // 👉 Gay / Lez sorusu — TR küçük/büyük ve ı/i varyantlarını yakala
+    const lc = message.content.toLocaleLowerCase('tr');
     if (/(gay ?m[iı]sin|gaym[iı]s[iı]n|lez ?m[iı]sin|lezbiyen ?m[iı]sin|lezm[iı]s[iı]n)/i.test(lc)) {
       return void message.reply({
         content: 'hmmmm… düşünmem lazım 😶‍🌫️ sanırım gayım… ne bileyim ben 🤔',
@@ -620,7 +475,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
   }
 
-  // Ban
+  // Ban (sadece komut kanalında + owner)
   if (txt.startsWith('!ban')) {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -654,7 +509,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     }
   }
 
-  // Mute
+  // Mute (sadece komut kanalında + owner veya yetkili roller)
   if (txt.startsWith('!mute')) {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -693,7 +548,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     }
   }
 
-  // Owner → toplu mesaj silme
+  // Owner → (!sohbet-sil <adet>) toplu mesaj silme (1–100, bulunduğu kanalda)
   if (txt.startsWith('!sohbet-sil')) {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     const m = txt.match(/^!sohbet-sil\s+(\d{1,3})$/);
@@ -770,6 +625,7 @@ client.on('channelDelete', async (channel) => {
 // ====================== READY / HATA LOG =======================
 client.once('ready', async () => {
   console.log(`✅ Bot aktif: ${client.user.tag}`);
+  // Durum: Oynuyor — "Sagi tarafından oluşturuldu — yardım için sagimokhtari"
   client.user.setPresence({
     activities: [{
       name: 'Sagi tarafından oluşturuldu — yardım için sagimokhtari',
@@ -778,7 +634,7 @@ client.once('ready', async () => {
     status: 'online'
   });
 
-  // 🔔 ÜYE REHBERİ MESAJI
+  // 🔔 ÜYE REHBERİ MESAJI — bot açıldığında otomatik gönder
   try {
     const channel = await client.channels.fetch(GUIDE_CHANNEL_ID).catch(() => null);
     if (channel) {
