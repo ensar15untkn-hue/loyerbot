@@ -53,6 +53,90 @@ const ADMIN_HELP_ALLOWED_ROLES = new Set([
   '1268595626258595853'
 ]);
 
+// ====================== OWO KISMI (YENİ) =======================
+// OwO komutlarına izinli kanallar
+const ALLOWED_GAME_CHANNELS = new Set([
+  '1369332479462342666', // ana oyun kanalı
+  '1268595972028760137'  // ikinci izinli kanal
+]);
+// Yönlendirme kanalı (uyarı mesajında mention)
+const REDIRECT_CHANNEL_ID = '1369332479462342666';
+
+// (Opsiyonel) OwO bot kullanıcı ID'si — izin kurulum komutu için gerekli.
+// OwO botunun ID'sini buraya gir (ör: '408785106942164992' eski OwO’dur; kendi sunucunda doğrula!)
+const OWOBOT_ID = 'PUT_OWO_BOT_ID_HERE';
+
+// Sunucuda tüm metin kanallarını dolaşıp, OwO için
+// izinli kanallarda "SendMessages" ALLOW, diğerlerinde DENY yapar.
+async function enforceOwOPermissions(guild) {
+  if (!OWOBOT_ID || OWOBOT_ID === 'PUT_OWO_BOT_ID_HERE') return '⚠️ OWOBOT_ID tanımlı değil.';
+  try {
+    // Botun kanal izinlerini yönetebildiğinden emin olalım
+    const me = guild.members.me;
+    if (!me?.permissions?.has(PermissionFlagsBits.ManageChannels)) {
+      return '⛔ Gerekli yetki yok: ManageChannels';
+    }
+
+    let changed = 0, skipped = 0;
+    for (const [id, channel] of guild.channels.cache) {
+      if (!channel?.isTextBased?.()) continue;
+
+      const allowHere = ALLOWED_GAME_CHANNELS.has(id);
+      const perms = channel.permissionOverwrites;
+
+      // mevcut overwrite
+      const current = perms.cache.get(OWOBOT_ID);
+      const wantAllow = allowHere ? true : false;
+
+      // Ayar zaten istenen gibi ise atla
+      if (current) {
+        const hasAllow = current.allow.has(PermissionFlagsBits.SendMessages);
+        const hasDeny  = current.deny.has(PermissionFlagsBits.SendMessages);
+
+        if (wantAllow && hasAllow && !hasDeny) { skipped++; continue; }
+        if (!wantAllow && hasDeny && !hasAllow) { skipped++; continue; }
+      }
+
+      // Yazma iznini izinli kanallarda ALLOW, diğerlerinde DENY
+      await channel.permissionOverwrites.edit(
+        OWOBOT_ID,
+        wantAllow
+          ? { SendMessages: true }   // allow
+          : { SendMessages: false }  // deny
+      ).catch(() => null);
+
+      changed++;
+    }
+    return `✅ OwO izinleri uygulandı. Değiştirilen: ${changed}, atlanan: ${skipped}`;
+  } catch (e) {
+    console.error('enforceOwOPermissions error:', e);
+    return '⛔ İzin kurulumu sırasında hata oluştu.';
+  }
+}
+
+// !owo-izin — Owner komutu: OwO kanal izinlerini topluca uygular
+async function handleOwoIzinCommand(message) {
+  const gid = message.guild?.id;
+  const uid = message.author.id;
+  if (!gid) return;
+  if (!OWNERS.includes(uid)) return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
+  if (!inCommandChannel(message)) {
+    return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+  }
+  const res = await enforceOwOPermissions(message.guild);
+  return message.reply(res);
+}
+
+// !owo-test — bulunduğun kanalda OwO mesajlarına izin var mı kontrol
+function handleOwoTest(message) {
+  const allowed = ALLOWED_GAME_CHANNELS.has(message.channel.id);
+  return message.reply(
+    allowed
+      ? '✅ Bu kanalda OwO komutlarına **izin var**.'
+      : `⛔ Bu kanalda OwO komutlarına **izin yok**. Lütfen <#${REDIRECT_CHANNEL_ID}> kanalını kullan.`
+  );
+}
+
 // !espiri metinleri (30 adet)
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
@@ -440,6 +524,25 @@ client.on('messageCreate', async (message) => {
   const cid = message.channel?.id;
   const uid = message.author.id;
   const txt = tLower(message.content);
+  const lc  = message.content.toLowerCase().trim();
+
+  // ======= OWO FİLTRE (YENİ) =======
+  // "w daily" veya "w cf" ile başlayan her şeyi yakala (yanında sayı vs. olabilir)
+  const isWDaily = lc.startsWith('w daily');
+  const isWCf    = lc.startsWith('w cf'); // 1..∞ sayı/ek olabilir, hepsini kapsar
+
+  if (isWDaily || isWCf) {
+    if (!ALLOWED_GAME_CHANNELS.has(cid)) {
+      // Uyar ve mümkünse kullanıcı mesajını sil
+      await message.reply(`⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`).catch(() => {});
+      const me = message.guild?.members?.me;
+      if (me?.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
+        await message.delete().catch(() => {});
+      }
+      // Devamını durdur
+      return;
+    }
+  }
 
   // ===================== YAZI OYUNU (sadece belirlenen kanalda) =====================
   if (cid === TYPING_CHANNEL_ID) {
@@ -576,6 +679,10 @@ Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
 • \`!sesme\` — Toplam seste kalma süren.  
 • \`!sohbet\` — **<#${SOHBET_KANAL_ID}>** için mesaj liderliği.  
 
+🕹️ **OwO Kısıtı**
+• OwO komutları (ör. \`w daily\`, \`w cf <sayı>\`) sadece şu kanallarda geçerli: <#1369332479462342666>, <#1268595972028760137>.  
+• Diğer kanallarda otomatik uyarı ve (iznin varsa) mesaj silme çalışır.  
+
 ℹ️ **Notlar**
 • Bazı komutlar belirli kanallarda çalışır (metin içinde belirtilmiştir).  
 • Owner/Yetkili komutları için \`!yardımyetkili\` yaz.  
@@ -641,10 +748,15 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
 • **!yazıiptal** — (Owner) Aktif yarışmayı iptal eder (puanları silmez).  
 • **!yazıresetle** — (Owner) Sunucuya ait tüm Yazı Oyunu puanlarını sıfırlar.  
 
+**OwO İzinleri**
+• **!owo-izin** — (Owner) OwO botunun **izinli kanallar dışındaki** tüm metin kanallarında **SendMessages = DENY**, izinli kanallarda **ALLOW** olacak şekilde **toplu** uygular.  
+• **!owo-test** — Bulunduğun kanalda OwO komutlarına izin var mı gösterir.
+
 **Kanallar / Roller**
 • Komut kanalı: **<#${COMMAND_CHANNEL_ID}>**  
 • Yazı Oyunu kanalı: **<#${TYPING_CHANNEL_ID}>**  
 • Sarılma komutu kanalı: **<#${HUG_CHANNEL_ID}>**  
+• OwO izinli kanallar: **<#1369332479462342666>**, **<#1268595972028760137>**  
 • Yetkili roller (mute/yardım): \`${[...ADMIN_HELP_ALLOWED_ROLES].join(', ')}\`  
 • Ek mute rolleri: \`${[...MUTE_ALLOWED_ROLES].join(', ')}\`  
 
@@ -779,6 +891,16 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     if (gid) for (const k of [...messageCount.keys()]) if (k.startsWith(`${gid}:`)) messageCount.delete(k);
     const label = OWNER_LABEL[uid] || 'hayhay';
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
+  }
+
+  // OwO izin kurulum komutu
+  if (txt === '!owo-izin') {
+    return void handleOwoIzinCommand(message);
+  }
+
+  // OwO test komutu
+  if (txt === '!owo-test') {
+    return void handleOwoTest(message);
   }
 
   // Ban (sadece komut kanalında + owner)
