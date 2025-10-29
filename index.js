@@ -87,6 +87,33 @@ const ESPIRI_TEXTS = [
   'Ay’da rüzgâr yok; bayraklar yine de gönlümüzde dalgalanıyor.'
 ];
 
+// ====================== DUYGU CEVAPLARI ======================
+const SAD_REPLIES = [
+  "Üzülme babuş 😔 en karanlık gecenin bile sabahı var.",
+  "Biliyorum zor ama geçecek… hep geçer 🌙",
+  "Kendine biraz zaman ver, fırtınadan sonra gökkuşağı çıkar 🌈",
+  "Dertleşmek istersen buradayım 🤍",
+  "Her şeyin bir sebebi var, şu an fark etmesen bile 💫",
+  "Bugün kötü olabilir ama yarın yeni bir sayfa ✨",
+  "Yalnız değilsin babuş, herkesin içi bazen böyle olur 💭",
+  "Bir kahve al, derin nefes çek ☕ biraz hafiflersin.",
+  "Bazen düşmek gerekir yeniden kalkmak için 💪",
+  "Kendine kızma, sadece dinlenmen gerekiyordu 🌙"
+];
+
+const HAPPY_REPLIES = [
+  "İşte bu enerjiyi seviyorum! 🔥",
+  "Harikaaa 😍 böyle devam et babuş!",
+  "O modunu kimse bozmasın 😎",
+  "Senin enerjin odayı aydınlatıyor ☀️",
+  "Mutluluğun bulaşıcı babuş, devam et böyle 💫",
+  "O pozitif enerjiyi hissettim buradan 💖",
+  "Bugün senin günün belli ki 😌",
+  "Mükemmel! Küçük şeylerden mutlu olmak en büyük yetenek 🌼",
+  "Böyle hissediyorsan her şey yolunda demektir 🌈",
+  "Ooo moral tavan! Böyle devam 😎🔥"
+];
+
 // ====================== ÇİÇEK DİYALOĞU VERİLERİ ======================
 const FLOWER_LIST = [
   'gül','lale','papatya','orkide','zambak','menekşe','karanfil','nergis','sümbül','yasemin',
@@ -521,6 +548,16 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
   if (message.mentions.users.has(client.user.id)) {
     const lc = message.content.toLocaleLowerCase('tr');
 
+    // ✅ DUYGU CEVAPLARI — ÖNCE ÇALIŞSIN (öncelik)
+    if (lc.includes('moralim bozuk')) {
+      const reply = SAD_REPLIES[Math.floor(Math.random() * SAD_REPLIES.length)];
+      return void message.reply(reply);
+    }
+    if (lc.includes('çok mutluyum') || lc.includes('cok mutluyum')) {
+      const reply = HAPPY_REPLIES[Math.floor(Math.random() * HAPPY_REPLIES.length)];
+      return void message.reply(reply);
+    }
+
     // 👉 Gay / Lez sorusu
     if (/(gay ?m[iı]sin|gaym[iı]s[iı]n|lez ?m[iı]sin|lezbiyen ?m[iı]sin|lezm[iı]s[iı]n)/i.test(lc)) {
       return void message.reply({
@@ -647,7 +684,7 @@ ${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakk
     try {
       const me = message.guild.members.me;
       if (!me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-        return message.reply('⛔ Gerekli yetki yok: **Üyeleri Zaman Aşımına Uğrat**');
+        return message.reply('⛺ Gerekli yetki yok: **Üyeleri Zaman Aşımına Uğrat**');
       }
       if (OWNERS.includes(targetId)) return message.reply('⛔ Owner’ları muteleyemem.');
       if (targetId === me.id) return message.reply('⛔ Kendimi muteleyemem.');
