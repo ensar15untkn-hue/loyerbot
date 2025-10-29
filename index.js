@@ -27,7 +27,7 @@ const OWNER_LABEL = {
 // Sohbet liderliği kanalı
 const SOHBET_KANAL_ID = '1413929200817148104';
 
-// !espiri metinleri (15 adet) — bilgilendirici ama komik
+// !espiri metinleri (30 adet) — bilgilendirici ama komik
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
   'Bir balinanın kalbi insan kadar ağır olabilir. Yani kalbi kırılan tek tür biz değiliz.',
@@ -131,7 +131,7 @@ client.on('messageCreate', async (message) => {
   }
 
   // ----------- KOMUTLAR (ÖNCE) -----------
-  // !espiri (tüm kanallar) — 15 espriden 1 tanesini söyler
+  // !espiri (tüm kanallar) — 30 espriden 1 tanesini söyler
   if (txt.trim() === '!espiri') {
     const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
     return void message.reply(joke);
@@ -141,6 +141,30 @@ client.on('messageCreate', async (message) => {
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
     return void message.reply(`${sonuc} 🎲`);
+  }
+
+  // 🎲 Zar Oyunu — !zar üst|alt
+  // Kural: 1-3 = alt, 4-6 = üst. Örnek: !zar üst
+  if (txt.startsWith('!zar')) {
+    const parts = txt.trim().split(/\s+/);
+    const secimRaw = parts[1] || '';
+    const secim = secimRaw.replace('ust','üst'); // ust -> üst normalize
+    if (!['üst','alt'].includes(secim)) {
+      return void message.reply('Kullanım: `!zar üst` veya `!zar alt`\nKural: **1-3 = alt**, **4-6 = üst**');
+    }
+
+    const roll = Math.floor(Math.random() * 6) + 1; // 1..6
+    const sonuc = roll <= 3 ? 'alt' : 'üst';
+    const kazandi = secim === sonuc;
+
+    const text = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}**\n${kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakkını veririz.'}`;
+    return void message.reply(text);
+  }
+
+  // 💡 Yardım komutu — basit anlatım (owner komutları hariç)
+  if (txt === '!yardım' || txt === '!help') {
+    const helpText = `\n📘 **Babuş'un Komut Rehberi**  \n\n🎭 **!espiri** — Sana rastgele komik ve bilgilendirici bir espri söyler.\n🎲 **!yazıtura** — Yazı mı Tura mı? Şansını dene babuş!\n🎯 **!zar üst / !zar alt** — Zar atılır. 1-3 alt, 4-6 üst. Kazanırsın ya da... kaybedersen ağlama, hakkını veririz. 😎\n🎙️ **!ses** — Sunucuda en çok seste kalanların listesi.\n🎧 **!sesme** — Senin toplam seste kalma süreni gösterir.\n💬 **!sohbet** — Sohbet kanalında en çok yazanları gösterir.\n👻 **@bot** — Etiketlersen seninle konuşur. “@bot naber babuş” falan yaz, keyfine bak.\n☀️ **@bot günaydın** — Sabah enerjisiyle yüzünü yıkamayı hatırlatır.\n🌙 **@bot iyi akşamlar** — Gece olunca üstünü örtmeni söyler (romantik dokunuşla).\n\n> 🔒 Owner komutlarını boşver babuş, onlar teknik işler 😏\n`;
+    return void message.reply(helpText);
   }
 
   // Bota YANIT özel cevapları (selam YOK)
@@ -154,8 +178,8 @@ client.on('messageCreate', async (message) => {
     if (txt.includes('yapıyorsun bu sporu')) return void message.reply('yerim seni kız💎💎');
     if (txt.includes('naber babuş'))         return void message.reply('iyiyim sen babuş👻');
     if (txt.includes('eyw iyiyim') || txt.includes('eyvallah iyiyim')) return void message.reply('süper hep iyi ol ⭐');
-    if (txt.includes('gunaydın') || txt.includes('günaydın')) return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
-    if (txt.includes('iyi akşamlar')) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
+    if (/(günaydın|gunaydin)/.test(txt))     return void message.reply('Günaydın babuş ☀️ yüzünü yıkamayı unutma!');
+    if (/(iyi akşamlar|iyi aksamlar)/.test(txt)) return void message.reply('İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏');
 
     // Sadece @bot yazıldıysa (başka metin yoksa) "naber babuş 👻" — her seferinde
     const onlyMention = message.content.replace(/<@!?\d+>/g, '').trim().length === 0;
