@@ -3,7 +3,8 @@ const { Client, GatewayIntentBits } = require('discord.js');
 
 const app = express();
 app.get('/', (_, res) => res.send('Bot aktif!'));
-app.listen(3000, () => console.log('🌐 Web sunucusu çalışıyor.'));
+app.listen(process.env.PORT || 3000, () => console.log('🌐 Web sunucusu çalışıyor.'));
+
 
 const client = new Client({
   intents: [
