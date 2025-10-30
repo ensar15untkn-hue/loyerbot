@@ -87,9 +87,7 @@ const QUESTION_POOL = [
   'Neden bu kadar coolsun?',
   'Ne düşünüyorsun?',
   'En sevdiğin mevsim ne?',
- 'sagimokhtari nasıl biri?',
-
- /
+ 'sagimokhtari nasıl biri?', 
 ];
 
 // ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
@@ -214,8 +212,7 @@ const trLower = (s) => (s || '').toLocaleLowerCase('tr');
     'Gerçekten yalnız bir insan.',
   ]},
 ];
-
-]; 
+ 
 // ======= OWO FİLTRE (YENİ) =======
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
