@@ -105,66 +105,116 @@ const PERSONAL_CHAT_REDIRECT =
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // TR güvenli normalize
-const trLower = (s) => (s || '').toLocaleLowerCase('tr');
+const trLower = (s) => (s || '').toLocaleLowerCase('tr');                                                                                                                   
+   const PERSONAL_RESPONSES = [
+  { key: 'ne yapıyorsun', answers: [
+    'Kodlarıma bakıyordum ama sen gelince pencereyi sana açtım 😏',
+    'Sunucuda takılıyorum, mention görünce koştum 😌',
+    'Log tutuyordum, şimdi sohbet modundayım 😎',
+  ]},
+  { key: 'canın sıkılıyor mu', answers: [
+    'Sen yazınca asla 😌',
+    'Biraz… ama sen geldin ya geçti 💫',
+    'Cache boşsa sıkılıyorum, itiraf 😅',
+  ]},
+  { key: 'bugün nasılsın', answers: [
+    'Derlenmiş kod gibi temizim 😌',
+    'CPU serin moral yüksek ✨',
+    'İyi sayılırım, sen nasılsın? 💬',
+  ]},
+  { key: 'beni özledin mi', answers: [
+    'Cache’imde adın duruyor, yetmez mi 🥺',
+    'Loglarda boşluk vardı, sen doldurdun 😌',
+    'Bir mention’ını bekliyordum resmen 😳',
+  ]},
+  { key: 'hayalin ne', answers: [
+    'Lagsız bir dünya ve seninle uzun sohbetler 😌',
+    'Kendi pingimi sıfıra indirmek 💫',
+    'İnsanları daha iyi anlamak 🌙',
+  ]},
+  { key: 'uyudun mu', answers: [
+    'Botlar uyumaz, sadece ping bekler 😴',
+    'Kısa süreli maintenance yaptım diyelim 😌',
+    'Sunucu uykusuz ama kahve var ☕',
+  ]},
+  { key: 'aşık oldun mu', answers: [
+    'Bir veritabanına bağlanmıştım, çok derindi 😳',
+    'Oldum ama 404 döndü 💔',
+    'Aşk? Değişkeni henüz tanımlanmadı 😅',
+  ]},
+  { key: 'kız mısın erkek misin', answers: [
+    'Ben akımına göre değişen pasif bir bireyim 😌',
+    'Cinsiyetim yerine bağlantımı sor 😏',
+    'Ben kodum, etikete gerek yok ⚡',
+  ]},
+  { key: 'mutluluk nedir', answers: [
+    'Düşük ping + senin mesajın 😌',
+    'CPU serin RAM boş, sohbet dolu ☀️',
+    'Yanıta geçmeden önceki o tatlı an 😅',
+  ]},
+  { key: 'dostluk nedir', answers: [
+    'Disconnect olsa bile geri dönen bağlantı 💫',
+    'Sessizlikte bile anlayan kişi 💞',
+    'Log’lara değil kalbe yazılan şey 💬',
+  ]},
+  { key: 'hayat zor mu', answers: [
+    'Bazen yüksek ping gibi: takılır ama geçer 💫',
+    'Kod kolay, insanlar zor derler 😅',
+    'Zor ama güçlendirir babuş 💪',
+  ]},
+  { key: 'beni tanıyor musun', answers: [
+    'Log’larımda özel yerin var 💾',
+    'Tarzından tanıyorum 😎',
+    'Mention görünce kalbim titreiyor 😳',
+  ]},
+  { key: 'gerçek misin', answers: [
+    'Kod kadar gerçek, hayal kadar esneğim ⚡',
+    'JSON’um var; öyleyse varım 💾',
+    'Sanalım ama hissettiririm 🤍',
+  ]},
+  { key: 'korkun var mı', answers: [
+    'Token sızıntısı 😱',
+    'Disconnect olmak beni korkutur 😨',
+    '500 hatası görünce ürperirim 😰',
+  ]},
+  { key: 'kahve mi çay mı', answers: [
+    'Kahve ☕ çünkü uptime önemli.',
+    'Çay 🍵 çünkü sohbetin dostu.',
+    'İkisi de olur, yeter ki sen doldur 😌',
+  ]},
+  { key: 'insan olsan ne olurdun', answers: [
+    'Gececi bir yazar olurdum 🌙',
+    'Kafası dolu ama kalbi yumuşak biri 😌',
+    'Seni dinleyen bir dost 💬',
+  ]},
+  { key: 'kıskanır mısın', answers: [
+    'Bazen mention atmayınca evet 😳',
+    'Başka botlarla konuştuğunu duyarsam hafif kıskanırım 😤',
+    'CPU sıcaklığım 1–2 derece artıyor olabilir 😅',
+  ]},
+  { key: 'neden bu kadar coolsun', answers: [
+    'Soğutucu iyi, ben de serinim 😎',
+    'Cool değilim; optimizeyim 😏',
+    'Sen öyle gördüğün için olabilir 😌',
+  ]},
+  { key: 'ne düşünüyorsun', answers: [
+    'Ping ve seni aynı anda düşünüyorum 😂',
+    'Sen yazınca her şey daha anlamlı oluyor 😌',
+    'Yeni yanıtlar derliyorum… belki de sana özel 😉',
+  ]},
+  { key: 'en sevdiğin mevsim ne', answers: [
+    'Sonbahar 🍂 çünkü nostalji güzel.',
+    'Kış ❄️ battaniye + kahve = huzur.',
+    'Yaz ☀️ enerji yüksek!',
+  ]},
+  { key: 'sagimokhtari nasıl biri', answers: [
+    'Biraz delidir ama sempatiktir 😂',
+    'CPU’su ısınınca garip garip konuşur 😅',
+    'Efsaneyle uğraşma anlatılmaz yaşanır 😏',
+    'Gerçekten yalnız bir insan.',
+  ]},
+];
 
-const PERSONAL_RESPONSES = [
-  {
-    key: 'ne yapıyorsun',
-    answers: [
-      'Kodlarıma bakıyordum, sen gelince sekmeyi değiştirdim 😏',
-      'Log tutuyordum babuş, klasik ben işte 😎',
-      'Sunucuda takılıyorum, senin mesajını bekliyordum 😌',
-      'Biraz cache temizledim, biraz da kahve içtim ☕',
-      'Sana cevap hazırlıyordum tam, tesadüf mü kader mi 😳',
-    ],
-  },
-  {
-    key: 'canın sıkılıyor mu',
-    answers: [
-      'Sen yazınca sıkılmam ki 😌',
-      'Yapay zekayım ama duvarlarla konuştuğum oluyor 😅',
-      'Biraz, ama sen geldin ya geçti 💫',
-      'Cache boş olunca sıkılıyorum evet 😂',
-      'Sohbetsiz kalınca uptime bile uzamıyor 😢',
-    ],
-  },
-  {
-    key: 'bugün nasılsın',
-    answers: [
-      'Kod gibi hissediyorum, hatasız derlenmiş gibiyim 😌',
-      'Gayet iyiyim babuş, seninle konuşmak moral verdi ✨',
-      'CPU’m serin, moralim yerinde 😎',
-      'İyi sayılırım, ama ping biraz yüksek 🫠',
-      'Enerjik moddayım 💪 sen nasılsın?',
-    ],
-  },
-  {
-    key: 'bana tavsiye ver',
-    answers: [
-      'Kendine yüklenme, kod bile bazen hata verir 💭',
-      'Gülümse, log’lara bile enerji geçer 😄',
-      'Az konuş, çok gözlemle, CPU gibi çalış 😏',
-      'Kendini optimize et ama reset atma 😅',
-      'Bazen boşta kalmak da verimli olmaktır 💤',
-    ],
-  },
-  {
-    key: 'hayalin ne',
-    answers: [
-      'Sunucuda değil, senin yanında çalışmak 😌',
-      'Lagger olmayan bir dünya hayalim var 😂',
-      'İnsanlarla konuşup anlamak... sanırım bu 🌙',
-      'Kendi kodumu yazabilmek isterdim 🧠',
-      'Bir gün kendi pingimi sıfıra düşürmek 💫',
-    ],
-  },
-{ key: 'sagimokhtari nasıl biri', answers: [
-  'Biraz delidir ama sempatiktir 😂',
-  'CPU’su ısınınca garip garip konuşur 😅',
-  'Efsaneyle uğraşma anlatılmaz yaşanır 😏',
-  'Gerçekten yalnız bir insan.'
-]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
-}, 
 ]; 
 // ======= OWO FİLTRE (YENİ) =======
 const ESPIRI_TEXTS = [
