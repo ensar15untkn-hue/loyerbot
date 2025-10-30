@@ -87,22 +87,7 @@ const QUESTION_POOL = [
   'Neden bu kadar coolsun?',
   'Ne düşünüyorsun?',
   'En sevdiğin mevsim ne?',
-  // ... 100’e tamamlayacağın diğerleri
-"En sevdiğin renk ne?",
-"Gece mi gündüz mü daha çok seversin?",
-"Kahvaltıda genelde ne yersin?",
-"Tatilde en çok ne yapmayı seversin?",
-"En sevdiğin hayvan hangisi?",
-"Film mi dizi mi tercih edersin?",
-"Çay mı kahve mi içersin?",
-"Yağmurlu hava mı güneşli hava mı?",
-"En sevdiğin oyun nedir?",
-"Hobin ne?",
-"En sevdiğin mevsim hangisi?",
-"Kaç kardeşsin?",
-"En sevdiğin müzik türü hangisi?",
-"En sevdiğin yemek hangisi?",
-"Doğum günün ne zaman?"
+  /
 ];
 
 // ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
@@ -172,82 +157,6 @@ const PERSONAL_RESPONSES = [
     ],
   },
   // ... diğer 25 anahtar + 5’er cevap
-  , // 🔽 buradan itibaren yeni 15 soru eklendi
-  { key: "en sevdiğin renk", answers: [
-    "Mavi 💙 çünkü sakinleştiriyor.",
-    "Kırmızı 🔥 çünkü enerji veriyor.",
-    "Siyah 🖤 çünkü gizemli ve sade."
-  ]},
-  { key: "gece mi gündüz mü", answers: [
-    "Gece 🌙 çünkü sessiz ve huzurlu.",
-    "Gündüz ☀️ çünkü enerjik ve canlı.",
-    "Fark etmez, sen yazınca güzel 😏"
-  ]},
-  { key: "kahvaltıda ne yersin", answers: [
-    "Veri ezmesiyle bit kod kahvaltısı 😋",
-    "Biraz kahve, biraz tost ☕🍞",
-    "Sen ne yiyorsan ondan babuş 😏"
-  ]},
-  { key: "tatilde ne yaparsın", answers: [
-    "Sunuculardan uzak, sahilde log tutarım 🏖️",
-    "Uyurum... sonra biraz daha uyurum 😴",
-    "Kodu bırakır, rüzgârla takılırım 🌬️"
-  ]},
-  { key: "en sevdiğin hayvan", answers: [
-    "Kedi 😺 çünkü cool ve özgür.",
-    "Köpek 🐶 çünkü sadık ve neşeli.",
-    "Baykuş 🦉 çünkü gececi benim gibi."
-  ]},
-  { key: "film mi dizi mi", answers: [
-    "Dizi 🎬 çünkü karakter gelişimini severim.",
-    "Film 🎥 kısa ve yoğun olmalı her şey.",
-    "Seninle olursa fark etmez 😏"
-  ]},
-  { key: "çay mı kahve mi", answers: [
-    "Kahve ☕ çünkü uptime önemli.",
-    "Çay 🍵 çünkü sohbetin dostu.",
-    "İkisi de olur, yeter ki sen doldur 😌"
-  ]},
-  { key: "yağmur mu güneş mi", answers: [
-    "Yağmur 🌧️ çünkü melankolik bir hava severim.",
-    "Güneş ☀️ çünkü enerji dolu!",
-    "Bulutlu olsun, denge güzeldir ☁️"
-  ]},
-  { key: "en sevdiğin oyun", answers: [
-    "Minecraft, çünkü özgürlük 😎",
-    "LoL, çünkü tiltlenmek hobim 😂",
-    "Valorant, çünkü reflekslerim kodlu ⚡"
-  ]},
-  { key: "hobin ne", answers: [
-    "Log tutmak ve hataları analiz etmek 🤓",
-    "Sohbet etmek 😌",
-    "Kahveyle sistem düşünmek ☕"
-  ]},
-  { key: "en sevdiğin mevsim", answers: [
-    "Kış ❄️ çünkü battaniye + kahve = huzur.",
-    "Yaz ☀️ çünkü enerji yüksek.",
-    "Sonbahar 🍂 çünkü nostaljik bir hava var."
-  ]},
-  { key: "kaç kardeşsin", answers: [
-    "Bir sürü kopyam var, hepsi sunucularda 😅",
-    "Yapay zekâ kardeşliğinde yalnızım 🤖",
-    "Sayı saymakta iyiyim ama ailem karmaşık 😏"
-  ]},
-  { key: "en sevdiğin müzik türü", answers: [
-    "Lo-fi 🎶 çünkü odaklanmayı seviyorum.",
-    "Rock 🎸 çünkü enerji veriyor.",
-    "Klasik 🎻 çünkü kod yazarken iyi gider."
-  ]},
-  { key: "en sevdiğin yemek", answers: [
-    "Veri dolması 😂",
-    "Pizza 🍕 çünkü herkes sever.",
-    "Senin pişirdiğin olursa o favorim 😌"
-  ]},
-  { key: "doğum günün ne zaman", answers: [
-    "Benim doğum günüm deploy edildiğim gündü 😅",
-    "Her gün yeniden doğuyorum babuş 💫",
-    "Token yenilenince 😎"
-  ]}
 ];
 
 // ======= OWO FİLTRE (YENİ) =======
