@@ -87,7 +87,7 @@ const QUESTION_POOL = [
   'Neden bu kadar coolsun?',
   'Ne düşünüyorsun?',
   'En sevdiğin mevsim ne?',
- 'sagimokhtari nasıl biri?', 
+  'sagimokhtari nasıl biri?',
 ];
 
 // ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
@@ -103,8 +103,8 @@ const PERSONAL_CHAT_REDIRECT =
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // TR güvenli normalize
-const trLower = (s) => (s || '').toLocaleLowerCase('tr');                                                                                                                   
-   const PERSONAL_RESPONSES = [
+const trLower = (s) => (s || '').toLocaleLowerCase('tr');
+const PERSONAL_RESPONSES = [
   { key: 'ne yapıyorsun', answers: [
     'Kodlarıma bakıyordum ama sen gelince pencereyi sana açtım 😏',
     'Sunucuda takılıyorum, mention görünce koştum 😌',
@@ -212,7 +212,7 @@ const trLower = (s) => (s || '').toLocaleLowerCase('tr');
     'Gerçekten yalnız bir insan.',
   ]},
 ];
- 
+
 // ======= OWO FİLTRE (YENİ) =======
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
@@ -275,105 +275,17 @@ const HAPPY_REPLIES = [
 
 // ====================== ÇİÇEK DİYALOĞU VERİLERİ ======================
 const FLOWER_LIST = [
-  'gül',
-  'lale',
-  'papatya',
-  'orkide',
-  'zambak',
-  'menekşe',
-  'karanfil',
-  'nergis',
-  'sümbül',
-  'yasemin',
-  'şebboy',
-  'frezya',
-  'çiğdem',
-  'kamelya',
-  'begonya',
-  'kaktüs',
-  'lavanta',
-  'hanımeli',
-  'nilüfer',
-  'akasya',
-  'kasımpatı',
-  'manolya',
-  'gardenya',
-  'ortanca',
-  'fulya',
-  'sardunya',
-  'melisa',
-  'gülhatmi',
-  'mor salkım',
-  'pembe karanfil',
-  'beyaz gül',
-  'kırmızı gül',
-  'mavi orkide',
-  'tulip',
-  'daffodil',
-  'sunflower',
-  'lotus',
-  'iris',
-  'aster',
-  'kardelen',
-  'şakayık',
-  'zerrin',
-  'yılbaşı çiçeği',
-  'camgüzeli',
-  'glayöl',
-  'kar çiçeği',
-  'itır',
-  'mine',
-  'begonvil',
-  'nane çiçeği',
-  'petunya',
-  'fitonya',
-  'antoryum',
-  'orkisya',
-  'fırfır çiçeği',
-  'papatyagiller',
-  'melati',
-  'süsen',
-  'çiçekli kaktüs',
-  'bambu çiçeği',
-  'kudret narı çiçeği',
-  'leylak',
-  'ağaç minesi',
-  'filbaharı',
-  'ateş çiçeği',
-  'sarmaşık',
-  'zehra çiçeği',
-  'aloe çiçeği',
-  'yaban gülü',
-  'gelincik',
-  'defne çiçeği',
-  'sümbülteber',
-  'agnus',
-  'mimoza',
-  'çiçekli sarmaşık',
-  'dağ laleleri',
-  'krizantem',
-  'akgül',
-  'portakal çiçeği',
-  'limon çiçeği',
-  'yenibahar çiçeği',
-  'barış çiçeği',
-  'gelin çiçeği',
-  'beyaz orkide',
-  'mavi menekşe',
-  'zümbül',
-  'yaban sümbül',
-  'narcissus',
-  'vadi zambağı',
-  'tropik orkide',
-  'sakura',
-  'çiçek açan kaktüs',
-  'mine çiçeği',
-  'orkidya',
-  'çiçekçi gülü',
-  'zarif orkide',
-  'badem çiçeği',
-  'nergiz',
-  'fulya çiçeği',
+  'gül','lale','papatya','orkide','zambak','menekşe','karanfil','nergis','sümbül','yasemin','şebboy',
+  'frezya','çiğdem','kamelya','begonya','kaktüs','lavanta','hanımeli','nilüfer','akasya','kasımpatı',
+  'manolya','gardenya','ortanca','fulya','sardunya','melisa','gülhatmi','mor salkım','pembe karanfil',
+  'beyaz gül','kırmızı gül','mavi orkide','tulip','daffodil','sunflower','lotus','iris','aster','kardelen',
+  'şakayık','zerrin','yılbaşı çiçeği','camgüzeli','glayöl','kar çiçeği','itır','mine','begonvil','nane çiçeği',
+  'petunya','fitonya','antoryum','orkisya','fırfır çiçeği','papatyagiller','melati','süsen','çiçekli kaktüs',
+  'bambu çiçeği','kudret narı çiçeği','leylak','ağaç minesi','filbaharı','ateş çiçeği','sarmaşık','zehra çiçeği',
+  'aloe çiçeği','yaban gülü','gelincik','defne çiçeği','sümbülteber','agnus','mimoza','çiçekli sarmaşık',
+  'dağ laleleri','krizantem','akgül','portakal çiçeği','limon çiçeği','yenibahar çiçeği','barış çiçeği',
+  'gelin çiçeği','beyaz orkide','mavi menekşe','zümbül','yaban sümbül','narcissus','vadi zambağı','tropik orkide',
+  'sakura','çiçek açan kaktüs','mine çiçeği','orkidya','çiçekçi gülü','zarif orkide','badem çiçeği','nergiz','fulya çiçeği',
 ];
 const FLOWER_RESPONSES = [
   'Gerçekten çok güzel bir çiçek 🌺 Evimin salonuna çok yakışır gibi!',
@@ -679,6 +591,30 @@ async function handleReplyReactions(message) {
     return void message.reply('süper hep iyi ol ⭐');
 }
 
+/* ====================== ZAR OYUNU PUAN SİSTEMİ (YENİ) ======================
+
+  Kurallar:
+  - Kazanırsa: +3 puan
+  - Kaybederse: -1 puan
+  - 2 kez üst üste kaybederse: ek -3 ceza (toplam o elde -4) ve "Cooked" özel mesaj + gif
+  - !zar puan → sunucuya ait top-10 tablo
+
+*/
+const diceScores = new Map();     // gid:uid -> puan
+const diceLossStreak = new Map(); // gid:uid -> ardışık kayıp sayısı
+
+const DICE_GIFS = [
+  'https://media.tenor.com/9UeW5Qm4rREAAAAM/dice-roll.gif',
+  'https://media.tenor.com/vyPpM1mR9WgAAAAM/rolling-dice.gif',
+  'https://media.tenor.com/1Qm6kQxRMgAAAAAM/dices.gif',
+];
+
+const COOKED_GIFS = [
+  'https://media.tenor.com/L7bG8GkZZxQAAAAM/gordon-ramsay-cooked.gif',
+  'https://media.tenor.com/8y0K0b2v8b0AAAAM/burn-fire.gif',
+  'https://media.tenor.com/3j2sQwEw1yAAAAAM/you-are-cooked.gif',
+];
+
 // ====================== MESAJ OLAYI ============================
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
@@ -845,6 +781,8 @@ client.on('messageCreate', async (message) => {
 • \\!yazıpuan — Yazı Oyunu ilk 10 skor tablosu.
 • \\!yazıiptal — (Owner) Aktif yarışı iptal eder.
 • \\!yazıresetle — (Owner) Yazı Oyunu puanlarını sıfırlar.
+• \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst.
+• \\!zar puan — Zar oyunu ilk 10 skor tablosu.  (Kazan: +3 | Kaybet: -1 | 2x kayıp: ek -3 “Cooked”)
 
 💞 **Etkileşim**
 • \\!sarıl @kullanıcı — **<#${HUG_CHANNEL_ID}>** kanalında sarılma GIF’i ile sarılır.
@@ -855,7 +793,6 @@ client.on('messageCreate', async (message) => {
 🎲 **Eğlence**
 • \\!espiri — Rastgele espri + bilgi.
 • \\!yazıtura — Yazı/Tura at.
-• \\!zar üst veya \\!zar alt — 1–3 alt, 4–6 üst.
 
 📊 **İstatistik**
 • \\!ses — En çok seste kalanlar.
@@ -885,7 +822,26 @@ client.on('messageCreate', async (message) => {
     return void message.reply(`${sonuc} 🎲`);
   }
 
+  // ---------- ZAR (PUANLI) ----------
   if (txt.startsWith('!zar')) {
+    // Skor tablosu
+    if (txt.trim() === '!zar puan' || txt.trim() === '!zarpuan') {
+      if (!gid) return;
+      const rows = [];
+      for (const [k, pts] of diceScores.entries()) {
+        if (k.startsWith(gid + ':')) rows.push({ uid: k.split(':')[1], pts });
+      }
+      if (!rows.length) return message.reply('🏁 Henüz zar oyunu puanı yok.');
+
+      rows.sort((a, b) => b.pts - a.pts);
+      const top = rows
+        .slice(0, 10)
+        .map((r, i) => `**${i + 1}.** <@${r.uid}> — **${r.pts}** puan`)
+        .join('\n');
+      return message.reply(`🎯 **Zar Oyunu Skor Tablosu**\n${top}`);
+    }
+
+    // Üst/alt oyunu
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
     const secim = secimRaw.replace('ust', 'üst'); // ust -> üst normalize
@@ -894,14 +850,49 @@ client.on('messageCreate', async (message) => {
         'Kullanım: !zar üst veya !zar alt\nKural: **1-3 = alt**, **4-6 = üst**'
       );
     }
+
     const roll = Math.floor(Math.random() * 6) + 1; // 1..6
     const sonuc = roll <= 3 ? 'alt' : 'üst';
     const kazandi = secim === sonuc;
-    const text = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}** ${
-      kazandi ? 'Kazandın 🎉' : 'Kaybettin 😿 ama ağlamayacaksın babuş, hakkını veririz.'
+
+    // puan/streak anahtarı
+    const key = scoreKey(gid, uid);
+
+    let delta = 0;
+    let extraNote = '';
+    let gif = DICE_GIFS[Math.floor(Math.random() * DICE_GIFS.length)];
+
+    if (kazandi) {
+      delta = +3;
+      diceLossStreak.set(key, 0); // kazandıysa streak sıfırlanır
+    } else {
+      // kayıp
+      const newStreak = (diceLossStreak.get(key) || 0) + 1;
+      diceLossStreak.set(key, newStreak);
+      delta = -1;
+
+      if (newStreak >= 2) {
+        // 2 kez üst üste kayıp → ek -3 ceza ve COOKED mesaj + özel gif
+        delta -= 3; // toplam bu elde -4
+        extraNote = '\n🔥 **Cooked!** İki kez üst üste kaybettin, **-3 puan ceza.**';
+        gif = COOKED_GIFS[Math.floor(Math.random() * COOKED_GIFS.length)];
+        diceLossStreak.set(key, 0); // cezayı kestikten sonra sıfırla
+      }
+    }
+
+    // puanı işle
+    diceScores.set(key, (diceScores.get(key) || 0) + delta);
+
+    const baseText = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}** ${
+      kazandi ? 'Kazandın 🎉 (**+3** puan)' : 'Kaybettin 😿 (**-1** puan)'
     }`;
-    return void message.reply(text);
+
+    return void message.reply({
+      content: `${baseText}${extraNote}`,
+      files: [gif],
+    });
   }
+  // ---------- /ZAR (PUANLI) ----------
 
   // ----------- YETKİLİ YARDIM -----------
   if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
@@ -939,7 +930,7 @@ client.on('messageCreate', async (message) => {
 • Komut kanalı: **<#${COMMAND_CHANNEL_ID}>**
 • Yazı Oyunu kanalı: **<#${TYPING_CHANNEL_ID}>**
 • Sarılma komutu kanalı: **<#${HUG_CHANNEL_ID}>**
-• OwO izinli kanallar: **<#1369332479462342666>**, **<#1268595972028760137>**
+• OwO izinli kanallar: **<#1369332479462342666>**, **<#${REDIRECT_CHANNEL_ID}>**
 • Yetkili roller (mute/yardım): ${[...ADMIN_HELP_ALLOWED_ROLES].join(', ')}
 • Ek mute rolleri: ${[...MUTE_ALLOWED_ROLES].join(', ')}
 
@@ -1345,6 +1336,7 @@ Hem sohbet ederim hem de eğlendiririm — ama bazen öyle laflar ederim ki,
 !espiri — Komik bilgi + espri
 !yazıtura — Yazı mı Tura mı?
 !zar üst / !zar alt — Zar tahmini
+!zar puan — Zar oyunu skor tablosu
 
 🎧 **İstatistik Komutları**
 !ses — En çok seste kalanları listeler
