@@ -465,9 +465,39 @@ for (const [k, v] of Object.entries(LOL_NEW)) {
   if (!(k in LOL_RESPONSES)) LOL_RESPONSES[k] = v;
 }
 
+// ====================== (YENİ) TEK KASA OYUN SİSTEMİ ======================
+// Zar + Yazı ortak puan kasası
+const gamePoints = new Map(); // key: gid:uid -> pts
+
+// Günlük limitler (İstanbul gününe göre)
+const dailyTypingWins = new Map(); // key: gid:uid:YYYY-MM-DD -> count
+const dailyClaimYaziBonus = new Map(); // key: gid:uid:YYYY-MM-DD -> true
+const dailyClaimZarBonus  = new Map(); // key: gid:uid:YYYY-MM-DD -> true
+
+function kGame(gid, uid) { return `${gid}:${uid}`; }
+function kDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
+function todayTR() {
+  const d = new Date();
+  const fmt = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const [day, month, year] = fmt.format(d).split('.'); // "30.10.2025"
+  return `${year}-${month}-${day}`;
+}
+function addPoints(gid, uid, delta) {
+  const key = kGame(gid, uid);
+  gamePoints.set(key, (gamePoints.get(key) || 0) + delta);
+  return gamePoints.get(key);
+}
+function guildTop(gid, limit = 10) {
+  const rows = [];
+  for (const [k, pts] of gamePoints.entries()) {
+    if (k.startsWith(gid + ':')) rows.push({ uid: k.split(':')[1], pts });
+  }
+  rows.sort((a,b)=>b.pts-a.pts);
+  return rows.slice(0, limit);
+}
+
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
-const typingScores = new Map(); // gid:uid -> puan
 const TYPING_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
 const TYPING_SENTENCES = [
   'Gölgelerin arasından doğan ışığa asla sırtını dönme.',
@@ -508,9 +538,6 @@ function normalizeTR(s) {
     .replace(/[.,;:!?'"~^_()[\]{}<>/@#$%&=+\\|-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-function scoreKey(gid, uid) {
-  return `${gid}:${uid}`;
 }
 
 // ====================== SARILMA OYUNU ======================
@@ -591,16 +618,14 @@ async function handleReplyReactions(message) {
     return void message.reply('süper hep iyi ol ⭐');
 }
 
-/* ====================== ZAR OYUNU PUAN SİSTEMİ (YENİ) ======================
+/* ====================== ZAR OYUNU KURALLARI ======================
 
-  Kurallar:
   - Kazanırsa: +3 puan
   - Kaybederse: -1 puan
-  - 2 kez üst üste kaybederse: ek -3 ceza (toplam o elde -4) ve "Cooked" özel mesaj + gif
-  - !zar puan → sunucuya ait top-10 tablo
-
+  - 2 kez üst üste kaybederse: ek -3 ceza (o elde toplam -4) ve "Cooked" özel mesaj + gif
+  - Puanlar tek kasada: gamePoints
+  - !zar puan -> birleşik kasadan gösterir
 */
-const diceScores = new Map();     // gid:uid -> puan
 const diceLossStreak = new Map(); // gid:uid -> ardışık kayıp sayısı
 
 const DICE_GIFS = [
@@ -672,7 +697,7 @@ client.on('messageCreate', async (message) => {
       await message.channel.send(
         `⌨️ **Yazı Oyunu** başlıyor! Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
 > ${sentence}
-⏱️ Süre: **60 saniye**`
+⏱️ Süre: **60 saniye**\n📌 **Günlük limit:** Aynı üye max **4 kez** puan alabilir.`
       );
 
       const timeoutId = setTimeout(() => {
@@ -696,50 +721,24 @@ client.on('messageCreate', async (message) => {
           clearTimeout(game.timeoutId);
           activeTypingGames.delete(cid);
 
-          const key = scoreKey(gid, uid);
-          typingScores.set(key, (typingScores.get(key) || 0) + 3);
+          // Günlük limit kontrolü (İstanbul gününe göre)
+          const day = todayTR();
+          const dKey = kDaily(gid, uid, day);
+          const current = dailyTypingWins.get(dKey) || 0;
+          if (current >= 4) {
+            return void message.channel.send(
+              `⛔ **${message.author}**, bugün Yazı Oyunundan alabileceğin **4 ödül sınırına** ulaştın. Yarın tekrar dene!`
+            );
+          }
+
+          dailyTypingWins.set(dKey, current + 1);
+          addPoints(gid, uid, 3);
 
           return void message.channel.send(
-            `🏆 **${message.author}** doğru yazdı ve **+3 puan** kazandı!\n> _${game.sentence}_`
+            `🏆 **${message.author}** doğru yazdı ve **+3 puan** kazandı! (Günlük yazı ödülün: **${current + 1}/4**) \n> _${game.sentence}_`
           );
         }
       }
-    }
-
-    // --- !yazıpuan ---
-    if (txt === '!yazıpuan' || txt === '!yazipuan' || txt === '!yazi-puan') {
-      const rows = [];
-      for (const [k, pts] of typingScores.entries()) {
-        if (k.startsWith(gid + ':')) rows.push({ uid: k.split(':')[1], pts });
-      }
-      if (!rows.length) return message.reply('🏁 Henüz yazı oyunu puanı yok.');
-
-      rows.sort((a, b) => b.pts - a.pts);
-      const top = rows
-        .slice(0, 10)
-        .map((r, i) => `**${i + 1}.** <@${r.uid}> — **${r.pts}** puan`)
-        .join('\n');
-      return message.reply(`📊 **Yazı Oyunu Skor Tablosu**\n${top}`);
-    }
-
-    // --- !yazıiptal ---
-    if (txt === '!yazıiptal' || txt === '!yaziiptal') {
-      if (!OWNERS.includes(uid)) return; // sadece owner
-      const g = activeTypingGames.get(cid);
-      if (!g) return message.reply('❌ Bu kanalda aktif yazı oyunu yok.');
-      clearTimeout(g.timeoutId);
-      activeTypingGames.delete(cid);
-      return message.reply('🛑 Yazı oyunu iptal edildi.');
-    }
-
-    // --- !yazıresetle ---
-    if (txt === '!yazıresetle' || txt === '!yaziresetle') {
-      if (!OWNERS.includes(uid)) return; // sadece owner
-      for (const k of [...typingScores.keys()]) {
-        if (k.startsWith(gid + ':')) typingScores.delete(k);
-      }
-      const label = OWNER_LABEL[uid] || 'hayhay';
-      return message.reply(`📉 ${label} — Yazı oyunu puan tablosu sıfırlandı!`);
     }
   }
   // =================== /YAZI OYUNU ===================
@@ -773,22 +772,25 @@ client.on('messageCreate', async (message) => {
     messageCount.set(k, (messageCount.get(k) || 0) + 1);
   }
 
-  // ----------- ÜYE YARDIM (her yerde) -----------
+  // ----------- ÜYE YARDIM (her yerde)  — (GÜNCELLENDİ) -----------
   if (txt === '!yardım' || txt === '!yardim') {
     const helpText = `📘 **Fang Yuan Bot • Üye Yardım**
-🎮 **Oyunlar**
-• \\!yazıoyunu — **<#${TYPING_CHANNEL_ID}>** kanalında 60 sn'lik yazı yarışını başlatır.
-• \\!yazıpuan — Yazı Oyunu ilk 10 skor tablosu.
-• \\!yazıiptal — (Owner) Aktif yarışı iptal eder.
-• \\!yazıresetle — (Owner) Yazı Oyunu puanlarını sıfırlar.
-• \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst.
-• \\!zar puan — Zar oyunu ilk 10 skor tablosu.  (Kazan: +3 | Kaybet: -1 | 2x kayıp: ek -3 “Cooked”)
+
+🎮 **Oyunlar (Tek Kasa)**
+• \\!yazıoyunu — **<#${TYPING_CHANNEL_ID}>** kanalında 60 sn'lik yazı yarışını başlatır.  
+  ↳ **Günlük limit:** aynı üye max **4** kez puan alır (başkası başlatsa da katılabilirsin).  
+• \\!yazı bonus — Günlük **+15** yazı bonusu (İstanbul gününe göre).  
+• \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst. Kazan: **+3**, Kaybet: **-1**.  
+  ↳ 2x üst üste kayıp: ek **-3** (toplam o elde **-4**, “Cooked” uyarısı).  
+• \\!zar bonus — Günlük **+15** zar bonusu (İstanbul gününe göre).  
+• \\!oyunsıralama — Zar + Yazı birleşik **puan sıralaması**.  
+• \\!zar puan / \\!yazıpuan — Aynı birleşik kasadan ilk 10’u gösterir.
 
 💞 **Etkileşim**
 • \\!sarıl @kullanıcı — **<#${HUG_CHANNEL_ID}>** kanalında sarılma GIF’i ile sarılır.
-• \\@Fang Yuan Bot — Etiketle sohbet et: “naber babuş”, “günaydın”, “iyi akşamlar”, “moralim bozuk”, “çok mutluyum” vb.
-• **LoL**: “**mainim <şampiyon>**” yaz; şampiyona özel cevap gelsin.
-• **Çiçek**: “**en sevdiğim çiçek <isim>**” yaz; şık bir yanıt al.
+• \\@Fang Yuan Bot — “naber babuş”, “günaydın”, “iyi akşamlar”, “moralim bozuk”, “çok mutluyum” vb.
+• **LoL**: “**mainim <şampiyon>**” yaz; şampiyona özel cevap.
+• **Çiçek**: “**en sevdiğim çiçek <isim>**” yaz; şık yanıt.
 
 🎲 **Eğlence**
 • \\!espiri — Rastgele espri + bilgi.
@@ -800,14 +802,13 @@ client.on('messageCreate', async (message) => {
 • \\!sohbet — **<#${SOHBET_KANAL_ID}>** için mesaj liderliği.
 
 🕹️ **OwO Kısıtı**
-• OwO komutları (ör. \\w daily, \\w cf <sayı>) sadece şu kanallarda geçerli: <#1369332479462342666>, <#1268595972028760137>.
+• OwO komutları (ör. \\w daily, \\w cf <sayı>) sadece: <#1369332479462342666>, <#${REDIRECT_CHANNEL_ID}>.
 • Diğer kanallarda otomatik uyarı ve (iznin varsa) mesaj silme çalışır.
 
 ℹ️ **Notlar**
-• Bazı komutlar belirli kanallarda çalışır (metin içinde belirtilmiştir).
-• Owner/Yetkili komutları için \\!yardımyetkili yaz.
-
-🔒 **Owner kısmı seni aşar babuş; orası teknik işler** 😏`;
+• Zar + Yazı puanları **tek kasada** toplanır; market ile birlikte kullanılabilir.
+• Bonuslar **günde 1 kez** alınır (İstanbul saatine göre).
+• Owner/Yetkili komutları için \\!yardımyetkili yaz.`;
     return void message.reply(helpText);
   }
 
@@ -822,29 +823,46 @@ client.on('messageCreate', async (message) => {
     return void message.reply(`${sonuc} 🎲`);
   }
 
+  // ---------- OYUN BONUSLARI (GÜNDE 1) ----------
+  if (txt === '!yazı bonus' || txt === '!yazi bonus' || txt === '!yazıbonus' || txt === '!yazi-bonus') {
+    if (!gid) return;
+    const day = todayTR();
+    const k = kDaily(gid, uid, day);
+    if (dailyClaimYaziBonus.get(k)) {
+      return message.reply('⛔ Bugünün **Yazı bonusunu** zaten aldın. Yarın tekrar gel babuş!');
+    }
+    dailyClaimYaziBonus.set(k, true);
+    const total = addPoints(gid, uid, 15);
+    return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun puanın: **${total}**`);
+  }
+
+  if (txt === '!zar bonus' || txt === '!zarbonus' || txt === '!zar-bonus') {
+    if (!gid) return;
+    const day = todayTR();
+    const k = kDaily(gid, uid, day);
+    if (dailyClaimZarBonus.get(k)) {
+      return message.reply('⛔ Bugünün **Zar bonusunu** zaten aldın. Yarın yine şansını dene!');
+    }
+    dailyClaimZarBonus.set(k, true);
+    const total = addPoints(gid, uid, 15);
+    return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun puanın: **${total}**`);
+  }
+
   // ---------- ZAR (PUANLI) ----------
   if (txt.startsWith('!zar')) {
-    // Skor tablosu
+    // Sıralama
     if (txt.trim() === '!zar puan' || txt.trim() === '!zarpuan') {
       if (!gid) return;
-      const rows = [];
-      for (const [k, pts] of diceScores.entries()) {
-        if (k.startsWith(gid + ':')) rows.push({ uid: k.split(':')[1], pts });
-      }
-      if (!rows.length) return message.reply('🏁 Henüz zar oyunu puanı yok.');
-
-      rows.sort((a, b) => b.pts - a.pts);
-      const top = rows
-        .slice(0, 10)
-        .map((r, i) => `**${i + 1}.** <@${r.uid}> — **${r.pts}** puan`)
-        .join('\n');
-      return message.reply(`🎯 **Zar Oyunu Skor Tablosu**\n${top}`);
+      const top = guildTop(gid, 10);
+      if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
+      const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
+      return message.reply(`🎯 **Oyun Puanı Sıralaması**\n${table}`);
     }
 
-    // Üst/alt oyunu
+    // Üst/alt
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
-    const secim = secimRaw.replace('ust', 'üst'); // ust -> üst normalize
+    const secim = secimRaw.replace('ust', 'üst');
     if (!['üst', 'alt'].includes(secim)) {
       return void message.reply(
         'Kullanım: !zar üst veya !zar alt\nKural: **1-3 = alt**, **4-6 = üst**'
@@ -855,37 +873,31 @@ client.on('messageCreate', async (message) => {
     const sonuc = roll <= 3 ? 'alt' : 'üst';
     const kazandi = secim === sonuc;
 
-    // puan/streak anahtarı
-    const key = scoreKey(gid, uid);
-
+    const key = kGame(gid, uid);
     let delta = 0;
     let extraNote = '';
     let gif = DICE_GIFS[Math.floor(Math.random() * DICE_GIFS.length)];
 
     if (kazandi) {
       delta = +3;
-      diceLossStreak.set(key, 0); // kazandıysa streak sıfırlanır
+      diceLossStreak.set(key, 0);
     } else {
-      // kayıp
       const newStreak = (diceLossStreak.get(key) || 0) + 1;
       diceLossStreak.set(key, newStreak);
       delta = -1;
 
       if (newStreak >= 2) {
-        // 2 kez üst üste kayıp → ek -3 ceza ve COOKED mesaj + özel gif
-        delta -= 3; // toplam bu elde -4
+        delta -= 3; // toplam -4
         extraNote = '\n🔥 **Cooked!** İki kez üst üste kaybettin, **-3 puan ceza.**';
         gif = COOKED_GIFS[Math.floor(Math.random() * COOKED_GIFS.length)];
-        diceLossStreak.set(key, 0); // cezayı kestikten sonra sıfırla
+        diceLossStreak.set(key, 0);
       }
     }
 
-    // puanı işle
-    diceScores.set(key, (diceScores.get(key) || 0) + delta);
-
+    const total = addPoints(gid, uid, delta);
     const baseText = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}** ${
       kazandi ? 'Kazandın 🎉 (**+3** puan)' : 'Kaybettin 😿 (**-1** puan)'
-    }`;
+    }\n📦 Toplam oyun puanın: **${total}**`;
 
     return void message.reply({
       content: `${baseText}${extraNote}`,
@@ -893,6 +905,24 @@ client.on('messageCreate', async (message) => {
     });
   }
   // ---------- /ZAR (PUANLI) ----------
+
+  // --------- BİRLEŞİK SIRALAMA & KISA YOL KOMUTLARI ---------
+  if (txt === '!oyunsıralama' || txt === '!oyunsiralama' || txt === '!oyun-sıralama') {
+    if (!gid) return;
+    const top = guildTop(gid, 10);
+    if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
+    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
+    return message.reply(`🏆 **Birleşik Oyun Puanı Sıralaması**\n${table}`);
+  }
+
+  // Yazı puan komutu da birleşik kasayı göstersin
+  if (txt === '!yazıpuan' || txt === '!yazipuan' || txt === '!yazi-puan') {
+    if (!gid) return;
+    const top = guildTop(gid, 10);
+    if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
+    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
+    return message.reply(`📊 **Oyun Puanı Skor Tablosu**\n${table}`);
+  }
 
   // ----------- YETKİLİ YARDIM -----------
   if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
@@ -918,21 +948,13 @@ client.on('messageCreate', async (message) => {
 • **!sohbet-sifirla** — (Owner) Sohbet liderliği sayaçlarını temizler.
 • **!ses-sifirla** — (Owner) Ses istatistiklerini sıfırlar.
 
-**Yazı Oyunu Yönetimi** *(sadece **<#${TYPING_CHANNEL_ID}>** kanalında çalışır)*
-• **!yazıiptal** — (Owner) Aktif yarışmayı iptal eder (puanları silmez).
-• **!yazıresetle** — (Owner) Sunucuya ait tüm Yazı Oyunu puanlarını sıfırlar.
+**Yazı Oyunu Yönetimi** *(sadece **<#${TYPING_CHANNEL_ID}>** kanalında)*
+• **!yazıiptal** — (Owner) Aktif yarışmayı iptal eder.
+• **!yazıresetle** — (Owner) Yazı oyunu günlük istatistiklerini sıfırlayınca anlamını yitirir; birleşik kasayı **etkilemez**.
 
 **OwO İzinleri**
 • **!owo-izin** — (Owner) OwO botu için kanal bazlı izinleri toplu uygular.
 • **!owo-test** — Bulunduğun kanalda OwO komutlarına izin var mı gösterir.
-
-**Kanallar / Roller**
-• Komut kanalı: **<#${COMMAND_CHANNEL_ID}>**
-• Yazı Oyunu kanalı: **<#${TYPING_CHANNEL_ID}>**
-• Sarılma komutu kanalı: **<#${HUG_CHANNEL_ID}>**
-• OwO izinli kanallar: **<#1369332479462342666>**, **<#${REDIRECT_CHANNEL_ID}>**
-• Yetkili roller (mute/yardım): ${[...ADMIN_HELP_ALLOWED_ROLES].join(', ')}
-• Ek mute rolleri: ${[...MUTE_ALLOWED_ROLES].join(', ')}
 
 > Notlar:
 > • Owner ID’leri: ${OWNERS.join(', ')}
@@ -1074,7 +1096,7 @@ client.on('messageCreate', async (message) => {
       .slice(0, 10)
       .map((r, i) => `**${i + 1}.** <@${r.uid}> — ${r.count} mesaj`)
       .join('\n');
-    return void message.reply(`💬 **Sohbet Liderliği** (<#${SOHBET_KANAL_ID}>)\n${top}`);
+    return message.reply(`💬 **Sohbet Liderliği** (<#${SOHBET_KANAL_ID}>)\n${top}`);
   }
 
   // ====================== OWNER KOMUTLARI ======================
@@ -1098,7 +1120,7 @@ client.on('messageCreate', async (message) => {
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
   }
 
-  // OwO izin ayarları (senin mevcut fonksiyonlarına delegasyon / stub)
+  // OwO izin ayarları (stub)
   if (txt === '!owo-izin') return void handleOwoIzinCommand(message);
   if (txt === '!owo-test') return void handleOwoTest(message);
 
@@ -1138,7 +1160,7 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // ✅ Unban (YENİ)
+  // ✅ Unban
   if (txt.startsWith('!unban')) {
     if (!inCommandChannel(message)) {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
@@ -1159,7 +1181,6 @@ client.on('messageCreate', async (message) => {
         return message.reply('⛔ Gerekli yetki yok: **Üyeleri Yasakla**');
       }
 
-      // Kullanıcı gerçekten banlı mı kontrol et
       const banEntry = await message.guild.bans.fetch(targetId).catch(() => null);
       if (!banEntry) {
         return message.reply('ℹ️ Bu kullanıcı şu anda banlı görünmüyor.');
@@ -1323,27 +1344,17 @@ client.once('ready', async () => {
     if (channel) {
       const guide = `🐉 **Fang Yuan Bot • Üye Rehberi**
 
-Selam dostum 👋 Ben **Fang Yuan Bot**, sunucunun sessiz ama her şeyi duyan bilgesi!
-Hem sohbet ederim hem de eğlendiririm — ama bazen öyle laflar ederim ki,
-“bu bot fazla yaşlı” dersin 😏
+Selam dostum 👋 Ben **Fang Yuan Bot**!
+Artık **tek kasalı** oyun sistemim var: Zar + Yazı puanların **aynı yerde** toplanır.
 
-🧠 **Benimle Sohbet Etmeyi Öğren**
-@Fang Yuan Bot → “naber babuş 👻”
-@Fang Yuan Bot günaydın → “Günaydın babuş ☀️ yüzünü yıkamayı unutma!”
-@Fang Yuan Bot iyi akşamlar → “İyi akşamlar 🌙 üstünü örtmeyi unutma, belki gece yatağına gelirim 😏”
+🎮 **Kısayollar**
+• !yazıoyunu — 60 sn yazı yarışması (**<#${TYPING_CHANNEL_ID}>**) | Günlük yazı ödülü limiti: **4**
+• !yazı bonus / !zar bonus — Her biri **günde +15** (İstanbul gününe göre)
+• !zar üst / !zar alt — Kazan: +3 | Kaybet: -1 | 2x kayıp = ek -3 (COOKED)
+• !oyunsıralama — Birleşik puan sıralaması
+• !yardım — Tüm komut listesi
 
-🎲 **Eğlenceli Komutlar**
-!espiri — Komik bilgi + espri
-!yazıtura — Yazı mı Tura mı?
-!zar üst / !zar alt — Zar tahmini
-!zar puan — Zar oyunu skor tablosu
-
-🎧 **İstatistik Komutları**
-!ses — En çok seste kalanları listeler
-!sesme — Kendi süreni gösterir
-!sohbet — En çok mesaj atanları listeler
-
-💡 **Not:** Geliştirilmeye açık bir botum, fikirlerin varsa geliştiricim <@923263340325781515> (sagimokhtari) ile iletişime geç 💫`;
+İyi eğlenceler babuş 💫`;
       await channel.send(guide);
       console.log('📘 Üye rehberi mesajı gönderildi!');
     } else {
@@ -1355,7 +1366,6 @@ Hem sohbet ederim hem de eğlendiririm — ama bazen öyle laflar ederim ki,
 });
 
 // Basit stub’lar — varsa kendi fonksiyonlarınla değiştir.
-// (Stub’lar, komutların “tanımsız” hatasına düşmesini engeller.)
 async function handleOwoIzinCommand(message) {
   try {
     return void message.reply('🛠️ (Örnek) OwO izin yapılandırması tamam simülasyonu ✅');
