@@ -665,13 +665,16 @@ const STEAL_TIMEOUT = 30_000; // 30 sn
 const STEAL_CLEANUP_THRESHOLD = 50;
 const CLEAN_FETCH_LIMIT = 100;
 
-// Saat aralığı (İstanbul 16:00–23:59)
+
+// Saat aralığı (İstanbul 16:00–00:59)
 function isWithinIstanbulWindow() {
   const nowStr = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
   const now = new Date(nowStr);
   const h = now.getHours();
-  return h >= 16 && h <= 23;
+  return h >= 16 || h < 1;
 }
+
+
 let stealUseCounter = 0;
 const activeSteals = new Set(); // `${thiefId}:${victimId}`
 
