@@ -671,6 +671,12 @@ function isWithinIstanbulWindow() {
   const nowStr = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
   const now = new Date(nowStr);
   const h = now.getHours();
+
+  
+   // 🔍 Test çıktısı
+  console.log("İstanbul saati:", h);
+
+  
   return h >= 16 || h < 1;
 }
 
