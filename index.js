@@ -53,6 +53,38 @@ const ADMIN_HELP_ALLOWED_ROLES = new Set([
   '1268595626258595853'
 ]);
 
+// ====================== DESTEK SORU ÖNERİSİ (RANDOM 3 SORU) ======================
+const SUPPORT_CHANNELS = new Set([
+  '1413929200817148104', // sohbet kanalı
+  '1268595926226829404', // bot komut kanalı
+  '1433137197543854110'  // fang yuan bot kanalı
+]);
+
+// Ana soru havuzu (örnek — senin 100 soruluk setten alınacak)
+const QUESTION_POOL = [
+  "Ne yapıyorsun?",
+  "Canın sıkılıyor mu?",
+  "Bugün nasılsın?",
+  "Beni özledin mi?",
+  "Hayalin ne?",
+  "Uyudun mu?",
+  "Aşık oldun mu?",
+  "Kız mısın erkek misin?",
+  "Mutluluk nedir?",
+  "Dostluk nedir?",
+  "Hayat zor mu?",
+  "Beni tanıyor musun?",
+  "Gerçek misin?",
+  "Korkun var mı?",
+  "Kahve mi çay mı?",
+  "İnsan olsan ne olurdun?",
+  "Kıskanır mısın?",
+  "Neden bu kadar coolsun?",
+  "Ne düşünüyorsun?",
+  "En sevdiğin mevsim ne?"
+  // ... buraya ana 100 soruluk listenin tamamı eklenecek
+];
+
 // ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
 // Bu sorulara sadece aşağıdaki üç kanalda cevap verilecek; diğer kanallarda yönlendirme atılır.
 const PERSONAL_CHAT_CHANNELS = new Set([
@@ -674,6 +706,24 @@ client.on('messageCreate', async (message) => {
   const uid = message.author.id;
   const txt = tLower(message.content);
   const lc  = message.content.toLocaleLowerCase('tr').trim();
+
+  // ===== DESTEK SORU ÖNERİSİ (Mention + "sana bir şey sorayım mı") =====
+  if (lc.includes('sana bir şey sorayım mı') && message.mentions.users.has(client.user.id)) {
+    const inAllowed = SUPPORT_CHANNELS.has(cid);
+    if (!inAllowed) {
+      return message.reply(
+        `⛔ Bu tür sohbetleri burada yapamıyorum babuş, lütfen <#1413929200817148104>, <#1268595926226829404> veya <#1433137197543854110> kanalına gel 💬`
+      );
+    }
+    const shuffled = [...QUESTION_POOL].sort(() => Math.random() - 0.5);
+    const randomQuestions = shuffled.slice(0, 3);
+    const text = [
+      "evet 😌 sor bakalım babuş 💭",
+      ...randomQuestions.map((q, i) => `**${i + 1}.** ${q}`)
+    ].join('\n');
+    return message.reply(text);
+  }
+  // =====================================================================
 
   // ======= OWO FİLTRE (YENİ) =======
   const isWDaily = lc.startsWith('w daily');
