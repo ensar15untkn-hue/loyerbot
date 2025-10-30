@@ -496,6 +496,223 @@ function guildTop(gid, limit = 10) {
   return rows.slice(0, limit);
 }
 
+/* =======================================================================
+   >>>>>>>>>>>>  MARKET SİSTEMİ • TEK PARÇA BLOK — ENTEGRASYON  <<<<<<<<<<
+   - gamePoints mevcutsa onu kullanır; yoksa kendi marketPoints haritasını açar.
+   - Komutlar:
+     !puan • !puan gonder @kisi <miktar> • !puan-ver @kisi <miktar>
+     !rollerimarket • !market al <rolId> • !market iade <rolId> • !yardimmarket
+======================================================================= */
+// 1) YAPILANDIRMA
+const ROLE_PRICE = 80; // sabit rol fiyatı
+const MARKET_ROLE_IDS = [
+  // ✅ SENİN ROLLERİN:
+  '1433390462084841482',
+  '1433390212138143917',
+  '1433389941555073076',
+  '1433389819337375785',
+  '1433389663904862331',
+];
+
+// 2) SAHİP/ETİKET (varsa dışarıdan kullan)
+const __MARKET__FALLBACK_OWNERS = (typeof OWNERS !== 'undefined' && Array.isArray(OWNERS))
+  ? OWNERS
+  : []; // sahip bilinmiyorsa boş bırak
+const __MARKET__LABEL = (typeof OWNER_LABEL !== 'undefined' && OWNER_LABEL)
+  ? OWNER_LABEL
+  : {}; // label yoksa boş obje
+
+// 3) PUAN KASASI (varsa global gamePoints'u kullan)
+const __MARKET__POINTS_MAP = (typeof gamePoints !== 'undefined' && gamePoints instanceof Map)
+  ? gamePoints
+  : (globalThis.__MARKET_POINTS__ ||= new Map());
+
+function __mkKey(gid, uid) { return `${gid}:${uid}`; }
+function getPoints(gid, uid) {
+  return __MARKET__POINTS_MAP.get(__mkKey(gid, uid)) || 0;
+}
+function setPoints(gid, uid, val) {
+  const v = Math.max(0, Math.floor(Number(val) || 0));
+  __MARKET__POINTS_MAP.set(__mkKey(gid, uid), v);
+  return v;
+}
+function parseAmount(lastToken) {
+  // "1.000", "+200", "200TL" gibi ifadeleri arındırır
+  const n = Math.floor(Number(String(lastToken).replace(/[^\d-]/g, '')));
+  return Number.isFinite(n) ? n : NaN;
+}
+
+// 4) YETKİ KONTROLLERİ
+function canManageRolesInGuild(message) {
+  const me = message.guild?.members?.me;
+  return Boolean(me && me.permissions.has?.(PermissionFlagsBits.ManageRoles));
+}
+function checkRoleHierarchyManageable(message, role) {
+  const me = message.guild?.members?.me;
+  if (!me || !role) return false;
+  return role.position < me.roles.highest.position;
+}
+
+// 5) KOMUTLAR (Market)
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author.bot) return;
+    const gid = message.guild?.id;
+    const uid = message.author.id;
+    const txt = (message.content || '').toLocaleLowerCase('tr').trim();
+
+    // --- !yardimmarket (market yardım)
+    if (txt === '!yardimmarket') {
+      const refund = Math.floor(ROLE_PRICE / 2);
+      const lines = MARKET_ROLE_IDS.length
+        ? MARKET_ROLE_IDS.map((rid, i) => `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`).join('\n')
+        : '_(Market boş görünüyor — rol ID ekleyin)_';
+
+      return void message.reply(
+`🛒 **Market & Puan Yardımı**
+• **!puan** — Mevcut puanını gösterir.
+• **!rollerimarket** — Market rollerini listeler ve fiyatları gösterir.
+• **!market al <rolId>** — **${ROLE_PRICE} puan** karşılığı rol satın alır.
+• **!market iade <rolId>** — Rol iadesi yapar, geri ödeme: **${refund} puan**.
+• **!puan gonder @kisi <miktar>** — Üyeye puan gönderir (bakiye kontrolü var; owner da yetersizse uyarı alır).
+• **(Owner)** **!puan-ver @kisi <miktar>** — Sınırsız puan verme (bakiye kontrolü YOK).
+
+__Market Rolleri__
+${lines}`
+      );
+    }
+
+    // --- !puan (bakiye)
+    if (txt === '!puan') {
+      if (!gid) return;
+      const bal = getPoints(gid, uid);
+      return void message.reply(`💰 Toplam oyun puanın: **${bal}**`);
+    }
+
+    // --- !rollerimarket (listeleme)
+    if (txt === '!rollerimarket' || txt === '!market roller' || txt === '!market-roller') {
+      if (!message.guild) return;
+      if (!MARKET_ROLE_IDS.length) return void message.reply('🛒 Market şu an boş görünüyor babuş.');
+
+      const lines = MARKET_ROLE_IDS.map((rid, i) =>
+        `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`
+      ).join('\n');
+
+      const refund = Math.floor(ROLE_PRICE / 2);
+      return void message.reply(
+        `🧩 **Market Rolleri**\n${lines}\n\nSatın almak: \`!market al <rolId>\`\n` +
+        `İade: \`!market iade <rolId>\` (geri iade: **${refund}** puan)`
+      );
+    }
+
+    // --- !market al / iade
+    if (txt.startsWith('!market ')) {
+      if (!gid || !message.guild) return;
+      const parts = message.content.trim().split(/\s+/);
+      const sub = (parts[1] || '').toLocaleLowerCase('tr');
+      const roleId = (parts[2] || '').replace(/[^\d]/g, '');
+
+      if (!['al', 'iade'].includes(sub)) {
+        return void message.reply('Kullanım:\n• `!market al <rolId>`\n• `!market iade <rolId>`\n• `!rollerimarket`');
+      }
+      if (!roleId) return void message.reply('⛔ Rol ID girmen lazım. `!rollerimarket` ile bakabilirsin.');
+      if (!MARKET_ROLE_IDS.includes(roleId)) {
+        return void message.reply('⛔ Bu rol markette değil. `!rollerimarket` ile geçerli rolleri gör.');
+      }
+
+      const role = message.guild.roles.cache.get(roleId);
+      if (!role) return void message.reply('⛔ Bu rol sunucuda bulunamadı (silinmiş olabilir).');
+
+      if (!canManageRolesInGuild(message)) {
+        return void message.reply('⛔ Gerekli yetki yok: **Rolleri Yönet**');
+      }
+      if (!checkRoleHierarchyManageable(message, role)) {
+        return void message.reply('⛔ Bu rolü yönetemiyorum (rol hiyerarşisi).');
+      }
+
+      const member = message.member;
+      const hasRole = member.roles.cache.has(roleId);
+
+      if (sub === 'al') {
+        if (hasRole) return void message.reply('ℹ️ Bu role zaten sahipsin.');
+        const bal = getPoints(gid, uid);
+        if (bal < ROLE_PRICE) {
+          return void message.reply(`⛔ Yetersiz puan. Gerekli: **${ROLE_PRICE}**, Bakiye: **${bal}**`);
+        }
+        try {
+          await member.roles.add(roleId, 'Market satın alma');
+          setPoints(gid, uid, bal - ROLE_PRICE);
+          return void message.reply(`✅ <@&${roleId}> rolünü aldın! **-${ROLE_PRICE}** puan. Yeni bakiye: **${getPoints(gid, uid)}**`);
+        } catch (e) {
+          console.error('market al hata:', e);
+          return void message.reply('⛔ Rol verilirken hata oluştu (izin/hiyerarşi).');
+        }
+      }
+
+      if (sub === 'iade') {
+        if (!hasRole) return void message.reply('ℹ️ Bu role sahip değilsin, iade edilemez.');
+        const refund = Math.floor(ROLE_PRICE / 2);
+        try {
+          await member.roles.remove(roleId, 'Market iade');
+          setPoints(gid, uid, getPoints(gid, uid) + refund);
+          return void message.reply(`↩️ <@&${roleId}> iade edildi. **+${refund}** puan geri yüklendi. Yeni bakiye: **${getPoints(gid, uid)}**`);
+        } catch (e) {
+          console.error('market iade hata:', e);
+          return void message.reply('⛔ Rol geri alınırken hata oluştu (izin/hiyerarşi).');
+        }
+      }
+    }
+
+    // --- !puan gonder @kisi <miktar> (bakiye kontrolü var; owner dahil)
+    if (txt.startsWith('!puan gonder') || txt.startsWith('!puan gönder')) {
+      if (!gid) return;
+
+      const target = message.mentions.users.first();
+      const parts = message.content.trim().split(/\s+/);
+      const amt = parseAmount(parts[parts.length - 1]);
+
+      if (!target || isNaN(amt))
+        return void message.reply('Kullanım: `!puan gonder @hedef <miktar>`');
+
+      if (target.id === uid) return void message.reply('⛔ Kendine puan gönderemezsin.');
+      if (amt <= 0) return void message.reply('⛔ Miktar **pozitif** olmalı.');
+
+      const fromBal = getPoints(gid, uid);
+      if (fromBal < amt) {
+        return void message.reply(`⛔ Yetersiz bakiye. Bakiye: **${fromBal}**, göndermek istediğin: **${amt}**`);
+      }
+
+      setPoints(gid, uid, fromBal - amt);
+      setPoints(gid, target.id, getPoints(gid, target.id) + amt);
+
+      return void message.reply(`✅ <@${target.id}> kullanıcısına **${amt}** puan gönderdin. Yeni bakiyen: **${getPoints(gid, uid)}**`);
+    }
+
+    // --- !puan-ver @kisi <miktar> (OWNER sınırsız dağıtım)
+    if (txt.startsWith('!puan-ver')) {
+      if (!gid) return;
+      if (!__MARKET__FALLBACK_OWNERS.includes(uid)) {
+        return void message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
+      }
+
+      const target = message.mentions.users.first();
+      const parts = message.content.trim().split(/\s+/);
+      const amt = parseAmount(parts[parts.length - 1]);
+
+      if (!target || isNaN(amt) || amt <= 0)
+        return void message.reply('Kullanım: `!puan-ver @hedef <pozitif_miktar>`');
+
+      setPoints(gid, target.id, getPoints(gid, target.id) + amt);
+      const label = __MARKET__LABEL[uid] || 'Owner';
+      return void message.reply(`👑 ${label} — <@${target.id}> kullanıcısına **${amt}** puan verildi. Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`);
+    }
+  } catch (err) {
+    console.error('[MARKET BLOK HATASI]', err);
+  }
+});
+// ==================== / MARKET SİSTEMİ • TEK PARÇA BLOK ====================
+
+
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
 const TYPING_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
@@ -805,8 +1022,17 @@ client.on('messageCreate', async (message) => {
 • OwO komutları (ör. \\w daily, \\w cf <sayı>) sadece: <#1369332479462342666>, <#${REDIRECT_CHANNEL_ID}>.
 • Diğer kanallarda otomatik uyarı ve (iznin varsa) mesaj silme çalışır.
 
+🛒 **Market**
+• \\!yardimmarket — Market kullanımını ve satılık rolleri gösterir.
+• \\!rollerimarket — Satıştaki rol listesi ve fiyatlar.
+• \\!market al <rolId> — Rol satın al (**${ROLE_PRICE} puan**).
+• \\!market iade <rolId> — İade (**${Math.floor(ROLE_PRICE/2)} puan** geri).
+• \\!puan — Puan bakiyen.
+• \\!puan gonder @kisi <miktar> — Puan transferi.
+• (Owner) \\!puan-ver @kisi <miktar> — Sınırsız puan verme.
+
 ℹ️ **Notlar**
-• Zar + Yazı puanları **tek kasada** toplanır; market ile birlikte kullanılabilir.
+• Zar + Yazı puanları **tek kasada** toplanır; market ile birlikte kullanılır.
 • Bonuslar **günde 1 kez** alınır (İstanbul saatine göre).
 • Owner/Yetkili komutları için \\!yardımyetkili yaz.`;
     return void message.reply(helpText);
