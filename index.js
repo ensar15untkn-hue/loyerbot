@@ -87,7 +87,9 @@ const QUESTION_POOL = [
   'Neden bu kadar coolsun?',
   'Ne düşünüyorsun?',
   'En sevdiğin mevsim ne?',
-  /
+ 'sagimokhtari nasıl biri?',
+
+ /
 ];
 
 // ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
@@ -156,9 +158,14 @@ const PERSONAL_RESPONSES = [
       'Bir gün kendi pingimi sıfıra düşürmek 💫',
     ],
   },
-  // ... diğer 25 anahtar + 5’er cevap
-];
-
+{ key: 'sagimokhtari nasıl biri', answers: [
+  'Biraz delidir ama sempatiktir 😂',
+  'CPU’su ısınınca garip garip konuşur 😅',
+  'Efsaneyle uğraşma anlatılmaz yaşanır 😏',
+  'Gerçekten yalnız bir insan.'
+]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+}, 
+]; 
 // ======= OWO FİLTRE (YENİ) =======
 const ESPIRI_TEXTS = [
   'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
