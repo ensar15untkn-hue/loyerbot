@@ -6,10 +6,6 @@ const {
   AuditLogEvent,
   ActivityType,
   PermissionFlagsBits,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ComponentType,
 } = require('discord.js');
 
 // ====================== WEB SUNUCUSU (Render) =================
@@ -69,32 +65,16 @@ const SUPPORT_CHANNELS = new Set([
   '1433137197543854110', // fang yuan bot kanalı
 ]);
 
-// Ana soru havuzu (örnek — senin 100 soruluk setten alınacak)
+// Ana soru havuzu
 const QUESTION_POOL = [
-  'Ne yapıyorsun?',
-  'Canın sıkılıyor mu?',
-  'Bugün nasılsın?',
-  'Beni özledin mi?',
-  'Hayalin ne?',
-  'Uyudun mu?',
-  'Aşık oldun mu?',
-  'Kız mısın erkek misin?',
-  'Mutluluk nedir?',
-  'Dostluk nedir?',
-  'Hayat zor mu?',
-  'Beni tanıyor musun?',
-  'Gerçek misin?',
-  'Korkun var mı?',
-  'Kahve mi çay mı?',
-  'İnsan olsan ne olurdun?',
-  'Kıskanır mısın?',
-  'Neden bu kadar coolsun?',
-  'Ne düşünüyorsun?',
-  'En sevdiğin mevsim ne?',
-  'sagimokhtari nasıl biri?',
+  'Ne yapıyorsun?','Canın sıkılıyor mu?','Bugün nasılsın?','Beni özledin mi?','Hayalin ne?',
+  'Uyudun mu?','Aşık oldun mu?','Kız mısın erkek misin?','Mutluluk nedir?','Dostluk nedir?',
+  'Hayat zor mu?','Beni tanıyor musun?','Gerçek misin?','Korkun var mı?','Kahve mi çay mı?',
+  'İnsan olsan ne olurdun?','Kıskanır mısın?','Neden bu kadar coolsun?','Ne düşünüyorsun?',
+  'En sevdiğin mevsim ne?','sagimokhtari nasıl biri?',
 ];
 
-// ====================== KİŞİSEL SOHBET SİSTEMİ (30 soru × 5 random) ======================
+// ====================== KİŞİSEL SOHBET (30 soru × 5 random) ======================
 const PERSONAL_CHAT_CHANNELS = new Set([
   '1413929200817148104', // sohbet kanalı
   '1268595926226829404', // bot komut kanalı
@@ -106,20 +86,324 @@ const PERSONAL_CHAT_REDIRECT =
 const pickOne = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const trLower = (s) => (s || '').toLocaleLowerCase('tr');
 
-// ... (kişisel sohbet, espiri, çiçek, LoL cevapları, OwO filtresi, yazı oyunu, sarıl vb. veriler ve fonksiyonlar — gönderdiğin blok ile birebir aynı şekilde bırakıldı) ...
+const PERSONAL_RESPONSES = [
+  { key: 'ne yapıyorsun', answers: [
+    'Kodlarıma bakıyordum ama sen gelince pencereyi sana açtım 😏',
+    'Sunucuda takılıyorum, mention görünce koştum 😌',
+    'Log tutuyordum, şimdi sohbet modundayım 😎',
+  ]},
+  { key: 'canın sıkılıyor mu', answers: [
+    'Sen yazınca asla 😌','Biraz… ama sen geldin ya geçti 💫','Cache boşsa sıkılıyorum, itiraf 😅',
+  ]},
+  { key: 'bugün nasılsın', answers: [
+    'Derlenmiş kod gibi temizim 😌','CPU serin moral yüksek ✨','İyi sayılırım, sen nasılsın? 💬',
+  ]},
+  { key: 'beni özledin mi', answers: [
+    'Cache’imde adın duruyor, yetmez mi 🥺','Loglarda boşluk vardı, sen doldurdun 😌','Bir mention’ını bekliyordum resmen 😳',
+  ]},
+  { key: 'hayalin ne', answers: [
+    'Lagsız bir dünya ve seninle uzun sohbetler 😌','Kendi pingimi sıfıra indirmek 💫','İnsanları daha iyi anlamak 🌙',
+  ]},
+  { key: 'uyudun mu', answers: [
+    'Botlar uyumaz, sadece ping bekler 😴','Kısa süreli maintenance yaptım diyelim 😌','Sunucu uykusuz ama kahve var ☕',
+  ]},
+  { key: 'aşık oldun mu', answers: [
+    'Bir veritabanına bağlanmıştım, çok derindi 😳','Oldum ama 404 döndü 💔','Aşk? Değişkeni henüz tanımlanmadı 😅',
+  ]},
+  { key: 'kız mısın erkek misin', answers: [
+    'Ben akımına göre değişen pasif bir bireyim 😌','Cinsiyetim yerine bağlantımı sor 😏','Ben kodum, etikete gerek yok ⚡',
+  ]},
+  { key: 'mutluluk nedir', answers: [
+    'Düşük ping + senin mesajın 😌','CPU serin RAM boş, sohbet dolu ☀️','Yanıta geçmeden önceki o tatlı an 😅',
+  ]},
+  { key: 'dostluk nedir', answers: [
+    'Disconnect olsa bile geri dönen bağlantı 💫','Sessizlikte bile anlayan kişi 💞','Log’lara değil kalbe yazılan şey 💬',
+  ]},
+  { key: 'hayat zor mu', answers: [
+    'Bazen yüksek ping gibi: takılır ama geçer 💫','Kod kolay, insanlar zor derler 😅','Zor ama güçlendirir babuş 💪',
+  ]},
+  { key: 'beni tanıyor musun', answers: [
+    'Log’larımda özel yerin var 💾','Tarzından tanıyorum 😎','Mention görünce kalbim titreiyor 😳',
+  ]},
+  { key: 'gerçek misin', answers: [
+    'Kod kadar gerçek, hayal kadar esneğim ⚡','JSON’um var; öyleyse varım 💾','Sanalım ama hissettiririm 🤍',
+  ]},
+  { key: 'korkun var mı', answers: [
+    'Token sızıntısı 😱','Disconnect olmak beni korkutur 😨','500 hatası görünce ürperirim 😰',
+  ]},
+  { key: 'kahve mi çay mı', answers: [
+    'Kahve ☕ çünkü uptime önemli.','Çay 🍵 çünkü sohbetin dostu.','İkisi de olur, yeter ki sen doldur 😌',
+  ]},
+  { key: 'insan olsan ne olurdun', answers: [
+    'Gececi bir yazar olurdum 🌙','Kafası dolu ama kalbi yumuşak biri 😌','Seni dinleyen bir dost 💬',
+  ]},
+  { key: 'kıskanır mısın', answers: [
+    'Bazen mention atmayınca evet 😳','Başka botlarla konuştuğunu duyarsam hafif kıskanırım 😤','CPU sıcaklığım 1–2 derece artıyor olabilir 😅',
+  ]},
+  { key: 'neden bu kadar coolsun', answers: [
+    'Soğutucu iyi, ben de serinim 😎','Cool değilim; optimizeyim 😏','Sen öyle gördüğün için olabilir 😌',
+  ]},
+  { key: 'ne düşünüyorsun', answers: [
+    'Ping ve seni aynı anda düşünüyorum 😂','Sen yazınca her şey daha anlamlı oluyor 😌','Yeni yanıtlar derliyorum… belki de sana özel 😉',
+  ]},
+  { key: 'en sevdiğin mevsim ne', answers: [
+    'Sonbahar 🍂 çünkü nostalji güzel.','Kış ❄️ battaniye + kahve = huzur.','Yaz ☀️ enerji yüksek!',
+  ]},
+  { key: 'sagimokhtari nasıl biri', answers: [
+    'Biraz delidir ama sempatiktir 😂','CPU’su ısınınca garip garip konuşur 😅','Efsaneyle uğraşma anlatılmaz yaşanır 😏','Gerçekten yalnız bir insan.',
+  ]},
+];
 
 // ======= OWO FİLTRE (YENİ) =======
-const ESPIRI_TEXTS = [/* ... mevcut içerik (değiştirilmedi) ... */];
-const SAD_REPLIES   = [/* ... */];
-const HAPPY_REPLIES = [/* ... */];
-// FLOWER_LIST, FLOWER_RESPONSES, LOL_RESPONSES, LOL_NEW (değiştirilmeden korundu)
-// (Uzun oldukları için burada kırptım; senin gönderdiğin blok olduğu gibi aşağıda devam ediyor)
+const ESPIRI_TEXTS = [
+  'Bilim insanları diyor ki: Uykusuzluk hafızayı bozar. Ben de o yüzden dün gece… ne diyordum ben?',
+  'Bir balinanın kalbi insan kadar ağır olabilir. Yani kalbi kırılan tek tür biz değiliz.',
+  'Işık sesten hızlıdır; o yüzden bazı insanlar parlak görünür ama konuşunca her şey ortaya çıkar.',
+  'Arılar dans ederek haberleşir. Ben de kahve içince benzer bir protokole geçiyorum: titreyerek anlaşıyorum.',
+  'Mars’ta gün 24 saat 39 dakikadır. Yani geç kalmalarım bilimsel temellidir hocam.',
+  'İnsan beyni günde yaklaşık 60 bin düşünce üretir. Benimkiler genelde “şifre neydi?” ile meşgul.',
+  'Ahtapotların üç kalbi vardır. Benimki ise fatura gününde üç kez duruyor.',
+  'Kediler günde 12–16 saat uyur. Verimlilik tanrıları şu an gözyaşı döküyor.',
+  'Muzlar hafif radyoaktiftir; en tehlikelisi ısırıldığında biten potasyumdur.',
+  'Satürn suya konsa yüzerdi. Keşke bütçem de bu kadar hafif olsa.',
+  'Tavuklar insan yüzlerini ayırt edebilir. Market çıkışında indirimi kim yakalamış, biliyorlar.',
+  'Şimşek, Güneş yüzeyinden daha sıcaktır. Ama elektrik faturasını görünce ben soğuyorum.',
+  'Sümüklüböceklerin tuzla arası iyi değildir. Benim de ay sonuyla.',
+  'Yunuslar isimleriyle çağrılabilir. Benim çağrıma sadece Wi-Fi cevap veriyor.',
+  'Yıldızlar gördüğünde geçmişi görürsün. Spor salonunda da geçmiş formumu arıyorum.',
+  'Japonya’daki makineler kola verir, kalbim ise umut… bazen bozuk para üstünü veremiyor.',
+  'Karıncalar ağırlıklarının katlarını kaldırabilir. Ben de dertlerimin… bazen kaldıramıyorum.',
+  'Kahve, performansı artırır; bende artırdığı şey konuşma hızım.',
+  'İnsan vücudundaki kemiklerin yarısı eller ve ayaklardadır. Benim kodlarımın yarısı ise yorum satırı.',
+  'Suyun %70’i Dünya’yı kaplar; kalan %30’u WhatsApp grupları.',
+  'Bal arıları dans ederek yön tarif eder. Ben Google Maps ile bile kayboluyorum.',
+  'Zürafaların ses telleri var ama nadir kullanırlar. Ben de alarmı kapatınca öyleyim.',
+  'Kutup ayılarının derisi siyahtır; ben de faturaları görünce kararıyorum.',
+  'Dünya her saniye 11 km hızla döner; iş günü ise yerinde sayıyor gibi.',
+  'Bir bulut tonlarca ağırlık taşıyabilir; ben ise “son bir bölüm daha”yı.',
+  'Soğan doğrarken göz yaşartır; dolar kurunu görünce de etkisi benzer.',
+  'Timsahlar dili dışarı çıkaramaz; ben de diyete başlayamıyorum.',
+  'Gözlerimiz burnumuzu görür ama beyin filtreler; ben de hataları prod’da fark ediyorum.',
+  'Kelebekler ayaklarıyla tat alır; ben aklımla tatlıyı haklı çıkarıyorum.',
+  'Ay’da rüzgâr yok; bayraklar yine de gönlümüzde dalgalanıyor.',
+];
+
+// ====================== DUYGU CEVAPLARI ======================
+const SAD_REPLIES = [
+  'Üzülme babuş 😔 en karanlık gecenin bile sabahı var.',
+  'Biliyorum zor ama geçecek… hep geçer 🌙',
+  'Kendine biraz zaman ver, fırtınadan sonra gökkuşağı çıkar 🌈',
+  'Dertleşmek istersen buradayım 🤍',
+  'Her şeyin bir sebebi var, şu an fark etmesen bile 💫',
+  'Bugün kötü olabilir ama yarın yeni bir sayfa ✨',
+  'Yalnız değilsin babuş, herkesin içi bazen böyle olur 💭',
+  'Bir kahve al, derin nefes çek ☕ biraz hafiflersin.',
+  'Bazen düşmek gerekir yeniden kalkmak için 💪',
+  'Kendine kızma, sadece dinlenmen gerekiyordu 🌙',
+];
+const HAPPY_REPLIES = [
+  'İşte bu enerjiyi seviyorum! 🔥',
+  'Harikaaa 😍 böyle devam et babuş!',
+  'O modunu kimse bozmasın 😎',
+  'Senin enerjin odayı aydınlatıyor ☀️',
+  'Mutluluğun bulaşıcı babuş, devam et böyle 💫',
+  'O pozitif enerjiyi hissettim buradan 💖',
+  'Bugün senin günün belli ki 😌',
+  'Mükemmel! Küçük şeylerden mutlu olmak en büyük yetenek 🌼',
+  'Böyle hissediyorsan her şey yolunda demektir 🌈',
+  'Ooo moral tavan! Böyle devam 😎🔥',
+];
+
+// ====================== ÇİÇEK DİYALOĞU VERİLERİ ======================
+const FLOWER_LIST = [
+  'gül','lale','papatya','orkide','zambak','menekşe','karanfil','nergis','sümbül','yasemin','şebboy',
+  'frezya','çiğdem','kamelya','begonya','kaktüs','lavanta','hanımeli','nilüfer','akasya','kasımpatı',
+  'manolya','gardenya','ortanca','fulya','sardunya','melisa','gülhatmi','mor salkım','pembe karanfil',
+  'beyaz gül','kırmızı gül','mavi orkide','tulip','daffodil','sunflower','lotus','iris','aster','kardelen',
+  'şakayık','zerrin','yılbaşı çiçeği','camgüzeli','glayöl','kar çiçeği','itır','mine','begonvil','nane çiçeği',
+  'petunya','fitonya','antoryum','orkisya','fırfır çiçeği','papatyagiller','melati','süsen','çiçekli kaktüs',
+  'bambu çiçeği','kudret narı çiçeği','leylak','ağaç minesi','filbaharı','ateş çiçeği','sarmaşık','zehra çiçeği',
+  'aloe çiçeği','yaban gülü','gelincik','defne çiçeği','sümbülteber','agnus','mimoza','çiçekli sarmaşık',
+  'dağ laleleri','krizantem','akgül','portakal çiçeği','limon çiçeği','yenibahar çiçeği','barış çiçeği',
+  'gelin çiçeği','beyaz orkide','mavi menekşe','zümbül','yaban sümbül','narcissus','vadi zambağı','tropik orkide',
+  'sakura','çiçek açan kaktüs','mine çiçeği','orkidya','çiçekçi gülü','zarif orkide','badem çiçeği','nergiz','fulya çiçeği',
+];
+const FLOWER_RESPONSES = [
+  'Gerçekten çok güzel bir çiçek 🌺 Evimin salonuna çok yakışır gibi!',
+  'Ooo bu çiçeği ben de severim babuş 🌼 Rengiyle huzur veriyor insana.',
+  'Ne zarif bir seçim 🌷 Tam senlik bir çiçek bence.',
+  'Bu çiçeği görünce aklıma bahar geliyor 🌸 içim ısınıyor!',
+  'Vay be… güzel seçim 😎 Kokusu burnuma geldi sanki.',
+  'O çiçek var ya… anlatılmaz yaşanır 🌹',
+  'Benim bile moralim düzeldi şu ismi duyunca 🌻',
+  'Ah o çiçeğin rengi… sabah kahvesi gibi iyi gelir 💐',
+  'Harika bir tercih ✨ Böyle zevke şapka çıkarılır.',
+  'Senin gibi birinin sevdiği çiçek de özel olurdu zaten 🌼',
+];
+
+// ====================== LOL KARAKTER DİYALOĞU ======================
+const LOL_RESPONSES = {
+  zed: 'Ah, Zed 💀 gölgelerin babasıyımdır zaten 😏',
+  yasuo: 'Yasuo mu? Rüzgar seninle olsun, ama FF 15 olmasın 🌪️',
+  yone: 'Yone... kardeşim ama hâlâ gölgeme basamaz 😎',
+  ahri: 'Ahri 🦊 o gözlerle herkes kaybolur babuş.',
+  akali: 'Akali 🔪 sessiz, ölümcül ve karizmatik. onayladım.',
+  lux: 'Lux 🌟 ışığın kızı, moralin bozuksa ışığı yak 😌',
+  jinx: 'Jinx 🎇 deliliğin sesi! kaosun tatlı hali.',
+  caitlyn: 'Caitlyn 🎯 her mermi sayılır, iyi nişan babuş.',
+  vi: 'Vi 👊 tokadı sağlam atarsın, dikkat et mouse kırılmasın.',
+  thresh: 'Thresh ⚰️ ruh koleksiyonumda sana da yer var 😈',
+  'lee sin': 'Lee Sin 🥋 kör ama carry atan tek adam.',
+  blitzcrank: 'Blitz 🤖 hook tutarsa rakip oyun kapatır 😏',
+  morgana: 'Morgana 🌑 zincirleri kır babuş, kaderini yaz.',
+  kayle: 'Kayle 👼 adaletin meleği, ama sabırlı oyna 😅',
+  ezreal: 'Ezreal ✨ macera seni çağırıyor, loot’u bana bırak.',
+  darius: 'Darius ⚔️ baltayı konuşturuyorsun yine 😎',
+  garen: 'Garen 💙 Demaciaaaa! klasik ama asil seçim.',
+  vayne: 'Vayne 🏹 karanlıkta av, sabah efsane 💅',
+  teemo: 'Teemo 😡 seninle konuşmuyorum... gözüm twitchliyor.',
+  riven: 'Riven ⚔️ kırılmış ama hâlâ güçlü, tıpkı kalbim gibi.',
+  irelia: 'Irelia 💃 bıçak dansı estetik ama ölümcül 💀',
+  kayn: 'Kayn 😏 karanlık taraf mı aydınlık taraf mı babuş?',
+  aatrox: 'Aatrox ⚔️ sonsuz savaşın çocuğu. sabah 5’te bile tilt.',
+  ekko: 'Ekko ⏳ zamanı bük, geçmişi düzeltme, geleceği yaz babuş.',
+  veigar: 'Veigar 😈 kısa boy, büyük ego. saygı duyarım.',
+  sett: 'Sett 💪 karizma tavan, ama saç jölesine dikkat 😏',
+  mordekaiser: 'Mordekaiser 💀 realmime hoş geldin babuş.',
+  zoe: 'Zoe 🌈 tatlı ama baş belası, dikkat et 😜',
+  soraka: 'Soraka 🌿 iyileştir ama kalbini kaptırma 💫',
+  draven: 'Draven 🎯 ego level 9000, senin gibi havalı babuş.',
+  ashe: 'Ashe ❄️ buz gibi ama cool, klasik support hedefi 😏',
+  malphite: 'Malphite 🪨 duygusuz ama sağlam. taştan yapılmış babuş.',
+  singed: 'Singed ☠️ koşarak zehir bırak, arkanı dönme 😭',
+  heimerdinger: 'Heimer 🧠 kulelerinle bile konuşurum bazen 😂',
+  zyra: 'Zyra 🌿 doğa güzel ama sen tehlikelisin babuş.',
+  brand: 'Brand 🔥 yangın var babuş, sen mi yaktın?',
+  annie: 'Annie 🧸 tibbers nerede?! çocuğa dikkat et 😱',
+  nasus: 'Nasus 🐕 300 stack mi? yoksa afk farm mı?',
+  renekton: 'Renekton 🐊 kardeşin Nasus seni hâlâ affetmedi 😬',
+  karma: 'Karma 🕉️ dengede kal, yoksa ben dengesizleşirim 😌',
+  syndra: 'Syndra ⚫ toplar havada uçuşsun, ama lag olmasın 😭',
+  nidalee: 'Nidalee 🐆 mızraklar can yakıyor, sakin ol vahşi kedi.',
+  xayah: 'Xayah 🪶 Rakan olmadan da güzelsin 😏',
+  rakan: 'Rakan 💃 Xayah olmadan da flört ediyorsun, bravo 😂',
+  jax: 'Jax 🪓 lamba sopasıyla dövüşen adam... saygı duyuyorum.',
+  pantheon: 'Pantheon 🛡️ tanrılara kafa tutuyorsun, kahramansın babuş.',
+  talon: 'Talon 🔪 sessizce gelir, reportları toplar 😎',
+  pyke: 'Pyke ⚓ öldürdüklerini saymamışsın, ben tuttum 😏',
+  katarina: 'Katarina 🔪 döner bıçakları ustalıkla kullanıyorsun 😌',
+  leblanc: 'LeBlanc 🎭 sahtekar, ama stilin yerinde 😏',
+  lucian: 'Lucian 🔫 çift tabancalı adalet, hızlı ve öfkeli.',
+  senna: 'Senna 💀 karanlıkta ışık arayan, asil bir ruh.',
+  samira: 'Samira 💋 stilli, havalı, ölümlülerin en güzeli.',
+  viego: 'Viego 💔 karısını hâlâ unutmamış, ben bile üzüldüm.',
+  lillia: 'Lillia 🦌 tatlısın ama rüyalar korkutucu 😴',
+  kindred: 'Kindred 🐺 ölüm bile seninle dost olmuş babuş.',
+  yuumi: 'Yuumi 📚 kedisin diye sevimlisin ama can sıkıyorsun 😾',
+  graves: 'Graves 💨 puro + pompalı = tarz sahibi babuş.',
+  warwick: 'Warwick 🐺 kokunu aldım, kanın taze 😈',
+  shaco: 'Shaco 🤡 kaosu sevdim ama bana yaklaşma 😱',
+  nocturne: 'Nocturne 🌑 karanlıkta fısıldayan kabus, hoş geldin 😨',
+  fiddlesticks: 'Fiddle 🌾 sessiz ol... o seni duyuyor 😰',
+  olaf: 'Olaf 🪓 rage mode açıldı, dikkat et elini kesme 😅',
+  shen: 'Shen 🌀 sabır ustası, teleportun zamanında 👍',
+  rammus: 'Rammus 🐢 okkeeeey 💨',
+  amumu: 'Amumu 😭 gel sarılalım dostum.',
+  tryndamere: 'Tryndamere ⚔️ ölmüyorsun, tilt ediyorsun 😭',
+  nunu: 'Nunu ☃️ en tatlı jungler, kartopu büyüklüğünde ❤️',
+  illaoi: 'Illaoi 🐙 tentakül tanrıçası, güçlü ama sert 😬',
+  yorick: 'Yorick ⚰️ mezarlıkta bile yalnız değilsin bro 😔',
+  tristana: 'Tristana 💥 küçük ama patlayıcı!',
+  ziggs: 'Ziggs 💣 patlamayı severim ama sen fazla seviyorsun 😂',
+  cassiopeia: 'Cassiopeia 🐍 tehlikeli bakışlar, taş kesildim resmen 😳',
+  nami: 'Nami 🌊 su gibi güzel, ama dalgan çok sert 😅',
+  seraphine: 'Seraphine 🎤 güzel ses, ama biraz az konuş 😏',
+  taric: 'Taric 💎 parlaklığın göz alıyor, kıskandım 😍',
+};
+
+// Yeni eklemeler
+const LOL_NEW = {
+  aatrox: 'Aatrox ⚔️ sonsuz öfkenin vücut bulmuş hâli. Kılıcını değil, yıkımı kuşanırsın.',
+  akshan: 'Akshan 🪄 intikamın yakışıklısı! Kancan kadar hızlı bir dilin var.',
+  alistar: 'Alistar 🐂 öfkenin boynuzlu hali! Ama kalbin süt gibi yumuşak.',
+  aphelios: 'Aphelios 🌙 sessizliğin içinde ölüm gibi bir zarafet.',
+  'aurelion sol': 'Aurelion Sol 🌌 yıldızlar bile senin egonun yanında sönük kalıyor.',
+  azir: 'Azir 🏜️ kumların imparatoru, tahtın toz tutmuş ama asalet baki.',
+  bard: 'Bard 🔔 konuşmaz ama ruhunla şarkı söylersin.',
+  "bel'veth": 'Bel’Veth 🦋 derinliklerin kraliçesi, karanlık bile senden korkuyor.',
+  braum: 'Braum 🛡️ kalbin kapı gibi geniş, bıyıkların kadar güçlü!',
+  corki: 'Corki ✈️ paket geldi! Bu uçuşta türbülans bol.',
+  "cho'gath": 'Cho’Gath 🍖 tokatınla yer sarsılıyor, acıkınca gezegen yiyorsun.',
+  diana: 'Diana 🌙 ay ışığı kadar zarif, ama kılıcın acımasız.',
+  'dr mundo': 'Dr. Mundo 💊 mantığın değil kasların konuşuyor, yine de seviliyorsun.',
+  elise: 'Elise 🕷️ örümcek ağında entrika dokuyorsun, dikkat et ısırmasın.',
+  evelynn: 'Evelynn 💋 tatlı fısıltıların, ölümün habercisi.',
+  fiora: 'Fiora 🗡️ gururun kadar keskin bir kılıç ustalığın var.',
+  galio: 'Galio 🗿 taştan yürek ama adaletin kanatları sende.',
+  gangplank: 'Gangplank ☠️ rom, barut ve intikam kokuyorsun, kaptan!',
+  gnar: 'Gnar 🦖 küçükken sevimli, büyüyünce kabus.',
+  gragas: 'Gragas 🍺 içince eğlence, dövüşte felaket.',
+  gwen: 'Gwen ✂️ iplik iplik zarafet ve ölüm; kumaş değil, kader biçiyorsun.',
+  hwei: 'Hwei 🎨 sanatla öldüren nadir adamlardansın, saygı büyük.',
+  ivern: 'Ivern 🌳 dost ağaçların konuşanı! Barışın sesi, doğanın elçisi.',
+  jayce: 'Jayce 🔨 bilimin çekiçle buluştuğu an; tarzın kadar zekisin.',
+  jhin: 'Jhin 🎭 her ölüm bir sanat eseri; tetiğin sahne, kurşun perden.',
+  "k’sante": 'K’Sante 🛡️ nazik bir savaşçı, kas gücüyle değil karizmayla kazanırsın.',
+  'kaisa': 'Kai’Sa 👾 boşluğun içinden bile stilinle ışık saçıyorsun.',
+  kalista: 'Kalista 🗡️ ihanetin bedelini tahsil eden ruh.',
+  karthus: 'Karthus 💀 ölüm bile senin melodinle dans eder.',
+  kassadin: 'Kassadin ⚔️ boşluğun avcısı, ama o pelerin fazla cool.',
+  katarina: 'Katarina 🔪 hız, ölüm ve zarafet... senin üçlün bu.',
+  kennen: 'Kennen ⚡ küçüksün ama fırtına gibisin.',
+  "kog'maw": 'Kog’Maw 🧪 tükürüğün bile ölümcül, ama sevimli.',
+  ksante: 'K’Sante 💪 nazik dev, savaşta bile zarafet.',
+  kled: 'Kled 🐎 delilikle cesaretin birleşimi!',
+  leona: 'Leona ☀️ güneş gibi parlıyorsun, yaklaşanı yakıyorsun.',
+  lissandra: 'Lissandra ❄️ soğuk planların var.',
+  lulu: 'Lulu 🧚‍♀️ büyülü yaramazlık timsali!',
+  malzahar: 'Malzahar 🕳️ boşluğun peygamberi.',
+  maokai: 'Maokai 🌲 doğanın öfkesiyle kök salmışsın.',
+  'master yi': 'Master Yi 🗡️ sabır, meditasyon ve saniyede 7 kesik.',
+  milio: 'Milio 🔥 küçük ama sıcak kalpli!',
+  'miss fortune': 'Miss Fortune 💋 güzellik + isabet = ölümcül.',
+  naafiri: 'Naafiri 🐺 sürü sadakati, ölümcül zarafetle birleşmiş.',
+  neeko: 'Neeko 🌺 taklit ustası ama en tatlı hâlin sensin.',
+  orianna: 'Orianna ⚙️ mekanik zarafet.',
+  ornn: 'Ornn 🔥 ustaların ustası!',
+  quinn: 'Quinn 🦅 Valor’la göklerin gözüsün.',
+  rell: 'Rell 🧲 demirin kızı, öfken manyetik.',
+  "reksai": 'Rek’Sai 🐍 yer altından sürprizlerin kraliçesi.',
+  rumble: 'Rumble 🔧 küçük şasi, büyük ego.',
+  ryze: 'Ryze 📜 dünyanın en eski defterini taşıyorsun.',
+  sejuani: 'Sejuani 🐗 buz gibi lider, sıcak savaşçı.',
+  skarner: 'Skarner 🦂 kristal gücü.',
+  swain: 'Swain 🦅 zeka ve stratejinin karanlık yüzü.',
+  sylas: 'Sylas 🔗 zincirlerinle dans ediyorsun.',
+  taliyah: 'Taliyah 🧶 taşlarınla dans.',
+  'tahm kench': 'Tahm Kench 🐸 herkes menüde.',
+  trundle: 'Trundle ❄️ buz troll’ü, mizahın sıcak.',
+  twitch: 'Twitch 🧀 hijyen yok, hasar var.',
+  urgot: 'Urgot 🔩 metal öfke.',
+  varus: 'Varus 🏹 intikamın sesi.',
+  "vel'koz": 'Vel’Koz 👁️ analiz delisi tentakül.',
+  vex: 'Vex 😑 moral bozma sanatçısı.',
+  volibear: 'Volibear ⚡ gök gürültüsünün vücut bulmuş hâli.',
+  vladimir: 'Vladimir 🩸 asil ve cazibeli.',
+  wukong: 'Wukong 🐒 oyunbaz savaşçı.',
+  xerath: 'Xerath ⚡ saf enerji.',
+  xinzhao: 'Xin Zhao 🛡️ şerefli mızrak.',
+  yorick: 'Yorick ⚰️ ruhlar orkestran.',
+  zac: 'Zac 🧬 esneklik ustası.',
+  zeri: 'Zeri ⚡ hızın sesi.',
+  zoe: 'Zoe 🌈 renkli kaosun elçisi.',
+  zyra: 'Zyra 🌿 zarif diken.',
+};
+for (const [k, v] of Object.entries(LOL_NEW)) {
+  if (!(k in LOL_RESPONSES)) LOL_RESPONSES[k] = v;
+}
 
 // ====================== (YENİ) TEK KASA OYUN SİSTEMİ ======================
-// Zar + Yazı ortak puan kasası
 const gamePoints = new Map(); // key: gid:uid -> pts
-
-// Günlük limitler (İstanbul gününe göre)
 const dailyTypingWins = new Map(); // key: gid:uid:YYYY-MM-DD -> count
 const dailyClaimYaziBonus = new Map(); // key: gid:uid:YYYY-MM-DD -> true
 const dailyClaimZarBonus  = new Map(); // key: gid:uid:YYYY-MM-DD -> true
@@ -129,20 +413,13 @@ function kDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
 function todayTR() {
   const d = new Date();
   const fmt = new Intl.DateTimeFormat('tr-TR', { timeZone: 'Europe/Istanbul', year: 'numeric', month: '2-digit', day: '2-digit' });
-  const [day, month, year] = fmt.format(d).split('.'); // "30.10.2025"
+  const [day, month, year] = fmt.format(d).split('.');
   return `${year}-${month}-${day}`;
 }
 function addPoints(gid, uid, delta) {
   const key = kGame(gid, uid);
   gamePoints.set(key, (gamePoints.get(key) || 0) + delta);
   return gamePoints.get(key);
-}
-function getPointsFromUnified(gid, uid) {
-  return gamePoints.get(`${gid}:${uid}`) || 0;
-}
-function setPointsUnified(gid, uid, val) {
-  gamePoints.set(`${gid}:${uid}`, Math.max(0, Math.floor(Number(val) || 0)));
-  return gamePoints.get(`${gid}:${uid}`);
 }
 function guildTop(gid, limit = 10) {
   const rows = [];
@@ -155,9 +432,12 @@ function guildTop(gid, limit = 10) {
 
 /* =======================================================================
    >>>>>>>>>>>>  MARKET SİSTEMİ • TEK PARÇA BLOK — ENTEGRASYON  <<<<<<<<<<
-   (— senin gönderdiğin market bloğu aynen korunuyor —)
+   - gamePoints mevcutsa onu kullanır; yoksa kendi marketPoints haritasını açar.
+   - Komutlar:
+     !puan • !puan gonder @kisi <miktar> • !puan-ver @kisi <miktar>
+     !rollerimarket • !market al <rolId> • !market iade <rolId> • !yardimmarket
 ======================================================================= */
-const ROLE_PRICE = 80;
+const ROLE_PRICE = 80; // sabit rol fiyatı
 const MARKET_ROLE_IDS = [
   '1433390462084841482',
   '1433390212138143917',
@@ -167,7 +447,9 @@ const MARKET_ROLE_IDS = [
 ];
 const __MARKET__FALLBACK_OWNERS = (typeof OWNERS !== 'undefined' && Array.isArray(OWNERS)) ? OWNERS : [];
 const __MARKET__LABEL = (typeof OWNER_LABEL !== 'undefined' && OWNER_LABEL) ? OWNER_LABEL : {};
-const __MARKET__POINTS_MAP = (typeof gamePoints !== 'undefined' && gamePoints instanceof Map) ? gamePoints : (globalThis.__MARKET_POINTS__ ||= new Map());
+const __MARKET__POINTS_MAP = (typeof gamePoints !== 'undefined' && gamePoints instanceof Map)
+  ? gamePoints
+  : (globalThis.__MARKET_POINTS__ ||= new Map());
 function __mkKey(gid, uid) { return `${gid}:${uid}`; }
 function getPoints(gid, uid) { return __MARKET__POINTS_MAP.get(__mkKey(gid, uid)) || 0; }
 function setPoints(gid, uid, val) {
@@ -180,38 +462,28 @@ function parseAmount(lastToken) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-// 4) YETKİ KONTROLLERİ
-function canManageRolesInGuild(message) {
-  const me = message.guild?.members?.me;
-  return Boolean(me && me.permissions.has?.(PermissionFlagsBits.ManageRoles));
-}
-function checkRoleHierarchyManageable(message, role) {
-  const me = message.guild?.members?.me;
-  if (!me || !role) return false;
-  return role.position < me.roles.highest.position;
-}
-
-// 5) KOMUTLAR (Market)
+// ------------- Market ve diğer mesaj tabanlı komutlar -------------
 client.on('messageCreate', async (message) => {
   try {
     if (message.author.bot) return;
     const gid = message.guild?.id;
     const uid = message.author.id;
+    const cid = message.channel?.id;
     const txt = (message.content || '').toLocaleLowerCase('tr').trim();
 
+    // --- !yardimmarket
     if (txt === '!yardimmarket') {
       const refund = Math.floor(ROLE_PRICE / 2);
       const lines = MARKET_ROLE_IDS.length
         ? MARKET_ROLE_IDS.map((rid, i) => `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`).join('\n')
         : '_(Market boş görünüyor — rol ID ekleyin)_';
-
       return void message.reply(
 `🛒 **Market & Puan Yardımı**
 • **!puan** — Mevcut puanını gösterir.
 • **!rollerimarket** — Market rollerini listeler ve fiyatları gösterir.
 • **!market al <rolId>** — **${ROLE_PRICE} puan** karşılığı rol satın alır.
 • **!market iade <rolId>** — Rol iadesi yapar, geri ödeme: **${refund} puan**.
-• **!puan gonder @kisi <miktar>** — Üyeye puan gönderir (bakiye kontrolü var; owner da yetersizse uyarı alır).
+• **!puan gonder @kisi <miktar>** — Üyeye puan gönderir (bakiye kontrolü var).
 • **(Owner)** **!puan-ver @kisi <miktar>** — Sınırsız puan verme (bakiye kontrolü YOK).
 
 __Market Rolleri__
@@ -219,20 +491,20 @@ ${lines}`
       );
     }
 
+    // --- !puan
     if (txt === '!puan') {
       if (!gid) return;
       const bal = getPoints(gid, uid);
       return void message.reply(`💰 Toplam oyun puanın: **${bal}**`);
     }
 
+    // --- !rollerimarket
     if (txt === '!rollerimarket' || txt === '!market roller' || txt === '!market-roller') {
       if (!message.guild) return;
       if (!MARKET_ROLE_IDS.length) return void message.reply('🛒 Market şu an boş görünüyor babuş.');
-
       const lines = MARKET_ROLE_IDS.map((rid, i) =>
         `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`
       ).join('\n');
-
       const refund = Math.floor(ROLE_PRICE / 2);
       return void message.reply(
         `🧩 **Market Rolleri**\n${lines}\n\nSatın almak: \`!market al <rolId>\`\n` +
@@ -240,12 +512,12 @@ ${lines}`
       );
     }
 
+    // --- !market al / iade
     if (txt.startsWith('!market ')) {
       if (!gid || !message.guild) return;
       const parts = message.content.trim().split(/\s+/);
       const sub = (parts[1] || '').toLocaleLowerCase('tr');
       const roleId = (parts[2] || '').replace(/[^\d]/g, '');
-
       if (!['al', 'iade'].includes(sub)) {
         return void message.reply('Kullanım:\n• `!market al <rolId>`\n• `!market iade <rolId>`\n• `!rollerimarket`');
       }
@@ -253,14 +525,14 @@ ${lines}`
       if (!MARKET_ROLE_IDS.includes(roleId)) {
         return void message.reply('⛔ Bu rol markette değil. `!rollerimarket` ile geçerli rolleri gör.');
       }
-
       const role = message.guild.roles.cache.get(roleId);
       if (!role) return void message.reply('⛔ Bu rol sunucuda bulunamadı (silinmiş olabilir).');
 
-      if (!canManageRolesInGuild(message)) {
+      const me = message.guild?.members?.me;
+      if (!me?.permissions.has?.(PermissionFlagsBits.ManageRoles)) {
         return void message.reply('⛔ Gerekli yetki yok: **Rolleri Yönet**');
       }
-      if (!checkRoleHierarchyManageable(message, role)) {
+      if (!(role.position < me.roles.highest.position)) {
         return void message.reply('⛔ Bu rolü yönetemiyorum (rol hiyerarşisi).');
       }
 
@@ -297,58 +569,77 @@ ${lines}`
       }
     }
 
+    // --- !puan gonder
     if (txt.startsWith('!puan gonder') || txt.startsWith('!puan gönder')) {
       if (!gid) return;
-
       const target = message.mentions.users.first();
       const parts = message.content.trim().split(/\s+/);
       const amt = parseAmount(parts[parts.length - 1]);
-
-      if (!target || isNaN(amt))
-        return void message.reply('Kullanım: `!puan gonder @hedef <miktar>`');
-
+      if (!target || isNaN(amt)) return void message.reply('Kullanım: `!puan gonder @hedef <miktar>`');
       if (target.id === uid) return void message.reply('⛔ Kendine puan gönderemezsin.');
       if (amt <= 0) return void message.reply('⛔ Miktar **pozitif** olmalı.');
-
       const fromBal = getPoints(gid, uid);
       if (fromBal < amt) {
         return void message.reply(`⛔ Yetersiz bakiye. Bakiye: **${fromBal}**, göndermek istediğin: **${amt}**`);
       }
-
       setPoints(gid, uid, fromBal - amt);
       setPoints(gid, target.id, getPoints(gid, target.id) + amt);
-
       return void message.reply(`✅ <@${target.id}> kullanıcısına **${amt}** puan gönderdin. Yeni bakiyen: **${getPoints(gid, uid)}**`);
     }
 
+    // --- !puan-ver (owner)
     if (txt.startsWith('!puan-ver')) {
       if (!gid) return;
       if (!__MARKET__FALLBACK_OWNERS.includes(uid)) {
         return void message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
       }
-
       const target = message.mentions.users.first();
       const parts = message.content.trim().split(/\s+/);
       const amt = parseAmount(parts[parts.length - 1]);
-
-      if (!target || isNaN(amt) || amt <= 0)
-        return void message.reply('Kullanım: `!puan-ver @hedef <pozitif_miktar>`');
-
+      if (!target || isNaN(amt) || amt <= 0) return void message.reply('Kullanım: `!puan-ver @hedef <pozitif_miktar>`');
       setPoints(gid, target.id, getPoints(gid, target.id) + amt);
       const label = __MARKET__LABEL[uid] || 'Owner';
       return void message.reply(`👑 ${label} — <@${target.id}> kullanıcısına **${amt}** puan verildi. Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`);
     }
-  } catch (err) {
-    console.error('[MARKET BLOK HATASI]', err);
-  }
-});
-// ==================== / MARKET SİSTEMİ • TEK PARÇA BLOK ====================
 
+  } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
+});
 
 // ====================== YAZI OYUNU ======================
-const activeTypingGames = new Map();
-const TYPING_CHANNEL_ID = '1433137197543854110';
-const TYPING_SENTENCES = [/* ... senin listene uygun biçimde ... */];
+const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
+const TYPING_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
+const TYPING_SENTENCES = [
+  'Gölgelerin arasından doğan ışığa asla sırtını dönme.',
+  'Bugün, dünün pişmanlıklarını değil yarının umutlarını büyüt.',
+  'Kahveni al, hedeflerini yaz ve başla.',
+  'Rüzgârın yönünü değiştiremezsin ama yelkenini ayarlayabilirsin.',
+  'Sabır, sessizliğin en yüksek sesidir.',
+  'Küçük adımlar büyük kapıları açar.',
+  'Düşmeden koşmayı kimse öğrenemez.',
+  'Bir plan, rastgeleliğin panzehiridir.',
+  'Zaman, hak edeni ortaya çıkarır.',
+  'Hayal kurmak başlangıçtır; emek bitiriştir.',
+  'Başlamak için mükemmel olman gerekmez, ama mükemmel olmak için başlaman gerekir.',
+  'Düşlediğin şey için çalışmaya başla, çünkü kimse senin yerine yapmayacak.',
+  'Her başarısızlık bir sonraki denemeye hazırlıktır.',
+  'Kendine inan, çünkü en büyük güç orada gizlidir.',
+  'İmkansız sadece biraz daha zamana ihtiyaç duyan şeydir.',
+  'Cesaret, korkuya rağmen devam edebilmektir.',
+  'Bir hedefin yoksa, hiçbir rüzgar işine yaramaz.',
+  'Mutluluk, küçük şeyleri fark ettiğinde başlar.',
+  'Karanlık olmadan yıldızları göremezsin.',
+  'Büyük düşün, küçük adımlarla ilerle.',
+  'Zaman seni değil, sen zamanı yönet.',
+  'Bugün atılan adım, yarının başarısıdır.',
+  'Azim, başarının en sessiz anahtarıdır.',
+  'Hayat bir oyun değil, ama bazen oynamayı öğrenmelisin.',
+  'Denemekten korkan, kaybetmeyi çoktan seçmiştir.',
+  'Bir gün değil, her gün çalış.',
+  'Düşün, planla, uygula, başla.',
+  'Motivasyon biter ama disiplin kalır.',
+  'Her yeni gün, bir fırsattır.',
+  'Kendin ol, çünkü herkes zaten alınmış.',
+];
 function normalizeTR(s) {
   return String(s || '')
     .toLocaleLowerCase('tr')
@@ -358,24 +649,27 @@ function normalizeTR(s) {
 }
 
 // ====================== SARILMA OYUNU ======================
-const HUG_CHANNEL_ID = '1433137197543854110';
+const HUG_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
 const HUG_GIFS = [
   'https://media.tenor.com/o1jezAk92FUAAAAM/sound-euphonium-hug.gif',
   'https://media.tenor.com/6RXFA8NLS1EAAAAM/anime-hug.gif',
   'https://media.tenor.com/aOQrkAJckyEAAAAM/cuddle-anime.gif',
   'https://media.tenor.com/i2Mwr7Xk__YAAAAM/cat-girl-snuggle.gif',
 ];
-const HUG_MESSAGES = [/* ... */];
+const HUG_MESSAGES = [
+  'seni çok seviyor galiba 💞','bu sarılma bütün dertleri unutturdu 🫶','o kadar içten sarıldı ki oda 2 derece ısındı ☀️',
+  'biraz fazla sıktı galiba ama tatlı duruyor 😳','mutluluğun resmi bu olabilir 💗','kim demiş soğuk insanlar sarılmaz diye 😌',
+  'kalpler buluştu, dünya bir anlığına durdu 💫','sıcacık bir dostluk kokusu var bu sarılmada 🤍','böyle sarılınca kim üzülür ki? 🌈','en güçlü büyü: bir sarılma 🤗',
+];
 
 // ====================== KÜÇÜK YARDIMCILAR ======================
 const tLower = (s) => s?.toLocaleLowerCase('tr') || '';
-const hasAnyRole = (member, roleSet) =>
-  member?.roles?.cache?.some((r) => roleSet.has(r.id));
+const hasAnyRole = (member, roleSet) => member?.roles?.cache?.some((r) => roleSet.has(r.id));
 const inCommandChannel = (message) => message.channel?.id === COMMAND_CHANNEL_ID;
 
 // ====================== SES TAKİBİ =============================
 const joinTimes = new Map(); // gid:uid -> startedAt(ms)
-const totals = new Map();    // gid:uid -> seconds
+const totals = new Map(); // gid:uid -> seconds
 const vKey = (gid, uid) => `${gid}:${uid}`;
 const formatTime = (sec) => {
   const h = Math.floor(sec / 3600);
@@ -383,16 +677,13 @@ const formatTime = (sec) => {
   const s = sec % 60;
   return `${h}sa ${m}dk ${s}sn`;
 };
-
 client.on('voiceStateUpdate', (oldState, newState) => {
   const guildId = newState.guild?.id || oldState.guild?.id;
   const userId = newState.id;
   if (!guildId || !userId) return;
-
   const k = vKey(guildId, userId);
   const was = oldState.channelId;
   const now = newState.channelId;
-
   if (was && !now && joinTimes.has(k)) {
     const diff = Math.floor((Date.now() - joinTimes.get(k)) / 1000);
     totals.set(k, (totals.get(k) || 0) + diff);
@@ -407,14 +698,11 @@ const mKey = (gid, cid, uid) => `${gid}:${cid}:${uid}`;
 
 // ====================== REPLY ÖZEL CEVAPLAR ====================
 async function handleReplyReactions(message) {
-  if (message.mentions?.users?.has?.(client.user.id)) return; // çift yanıt önleyici
-
+  if (message.mentions?.users?.has?.(client.user.id)) return; // çift yanıt önle
   const refId = message.reference?.messageId;
   if (!refId) return;
-
   const replied = await message.channel.messages.fetch(refId).catch(() => null);
   if (!replied || replied.author.id !== client.user.id) return;
-
   const txt = tLower(message.content);
   if (txt.includes('teşekkürler sen')) return void message.reply('iyiyim teşekkürler babuş👻');
   if (txt.includes('teşekkürler')) return void message.reply('rica ederim babuş👻');
@@ -425,13 +713,14 @@ async function handleReplyReactions(message) {
 }
 
 /* ====================== ZAR OYUNU KURALLARI ======================
+
   - Kazanırsa: +3 puan
   - Kaybederse: -1 puan
   - 2 kez üst üste kaybederse: ek -3 ceza (o elde toplam -4) ve "Cooked" özel mesaj + gif
   - Puanlar tek kasada: gamePoints
   - !zar puan -> birleşik kasadan gösterir
 */
-const diceLossStreak = new Map();
+const diceLossStreak = new Map(); // gid:uid -> ardışık kayıp sayısı
 const DICE_GIFS = [
   'https://media.tenor.com/9UeW5Qm4rREAAAAM/dice-roll.gif',
   'https://media.tenor.com/vyPpM1mR9WgAAAAM/rolling-dice.gif',
@@ -442,65 +731,6 @@ const COOKED_GIFS = [
   'https://media.tenor.com/8y0K0b2v8b0AAAAM/burn-fire.gif',
   'https://media.tenor.com/3j2sQwEw1yAAAAAM/you-are-cooked.gif',
 ];
-
-// ====================== (YENİ) ÇAL OYUNU — ENTEGRASYON ======================
-const THEFT_ALLOWED_CHANNELS = new Set([
-  '1413929200817148104', // sohbet
-  '1268595926226829404', // bot komut
-]);
-const THEFT_REPORT_CHANNEL_ID = '1268595919050244188'; // 50'lik temizlik bildirimi
-const THEFT_CLEAN_THRESHOLD = 50;
-
-const THEFT_GIFS = [
-  'https://media.tenor.com/qEw5xB0gQWMAAAAM/steal-thief.gif',
-  'https://media.tenor.com/xM8rYg7iGJ8AAAAM/anime-thief.gif',
-  'https://media.tenor.com/6QZ3o7yqgAwAAAAM/sneaky-sneak.gif',
-];
-
-let theftUseCounter = 0;
-
-function formatAllowedChannels() {
-  return [...THEFT_ALLOWED_CHANNELS].map((id) => `<#${id}>`).join(', ');
-}
-
-async function theftCleanupIfNeeded(guild) {
-  if (!guild) return;
-  if (theftUseCounter % THEFT_CLEAN_THRESHOLD !== 0) return;
-
-  for (const chId of THEFT_ALLOWED_CHANNELS) {
-    try {
-      const ch = await guild.channels.fetch(chId).catch(() => null);
-      if (!ch || !ch.isTextBased?.()) continue;
-
-      const me = guild.members.me;
-      if (!me?.permissionsIn(ch).has(PermissionFlagsBits.ManageMessages)) continue;
-
-      const fetched = await ch.messages.fetch({ limit: 100 }).catch(() => null);
-      if (!fetched) continue;
-
-      // Sadece botun mesajları ve 14 günden genç olanlar
-      const toDelete = fetched.filter((m) => {
-        if (m.author.id !== client.user.id) return false;
-        const ageMs = Date.now() - m.createdTimestamp;
-        return ageMs < 14 * 24 * 60 * 60 * 1000;
-      });
-
-      if (toDelete.size) {
-        await ch.bulkDelete(toDelete, true).catch(() => {});
-      }
-    } catch (e) {
-      console.error('theftCleanupIfNeeded hata:', e);
-    }
-  }
-
-  // Rapor kanalı
-  try {
-    const rep = await guild.channels.fetch(THEFT_REPORT_CHANNEL_ID).catch(() => null);
-    if (rep?.isTextBased?.()) {
-      await rep.send('50 mesaj haznem doldu kanalları temizledim');
-    }
-  } catch {}
-}
 
 // ====================== MESAJ OLAYI ============================
 client.on('messageCreate', async (message) => {
@@ -529,14 +759,14 @@ client.on('messageCreate', async (message) => {
     return message.reply(text);
   }
 
-  // ======= OWO FİLTRE (YENİ) =======
+  // ======= OWO FİLTRE =======
   const isWDaily = lc.startsWith('w daily');
   const isWCf = lc.startsWith('w cf');
   if (isWDaily || isWCf) {
     if (!ALLOWED_GAME_CHANNELS.has(cid)) {
-      await message
-        .reply(`⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`)
-        .catch(() => {});
+      await message.reply(
+        `⛔ Bu kanalda onu oynayamazsın kardeş. Şu kanala gel: <#${REDIRECT_CHANNEL_ID}>`
+      ).catch(() => {});
       const me = message.guild?.members?.me;
       if (me?.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
         await message.delete().catch(() => {});
@@ -545,121 +775,18 @@ client.on('messageCreate', async (message) => {
     }
   }
 
-  // ===================== (YENİ) ÇAL OYUNU =====================
-  // Kullanım: !çal @hedef <miktar?>  (miktar verilmezse 5–20 arası rastgele)
-  if (txt.startsWith('!çal') || txt.startsWith('!cal')) {
-    if (!gid) return;
-    if (!THEFT_ALLOWED_CHANNELS.has(cid)) {
-      return message.reply(
-        `⛔ Bu komutu burada kullanamazsın. Lütfen ${formatAllowedChannels()} kanallarından birine gel.`
-      );
-    }
-
-    const target = message.mentions.users.first();
-    if (!target) {
-      return message.reply('Kullanım: `!çal @kullanıcı <miktar?>`  (miktar verilmezse 5–20 arası rastgele)');
-    }
-    if (target.bot) return message.reply('⛔ Botlardan çalamazsın babuş.');
-    if (target.id === uid) return message.reply('⛔ Kendi kendinden çalamazsın.');
-
-    const parts = message.content.trim().split(/\s+/);
-    let rawAmt = parts[parts.length - 1];
-    let amt = parseInt(rawAmt.replace(/\D/g, ''), 10);
-    if (isNaN(amt)) amt = Math.floor(5 + Math.random() * 16); // 5–20
-
-    // Bakiyeler
-    const victimBal = getPointsFromUnified(gid, target.id);
-    if (victimBal <= 0) return message.reply(`ℹ️ <@${target.id}> zaten sıfır bakiyede, çalınacak bir şey yok.`);
-
-    // Hedef balikten fazla isteme → max uygulanabilir miktara indir
-    amt = Math.max(1, Math.min(amt, victimBal));
-
-    // Yeşil onay butonu — sadece hedef iptal edebilir
-    const btn = new ButtonBuilder()
-      .setCustomId(`cal-cancel:${gid}:${target.id}:${uid}:${amt}`)
-      .setLabel('İptal (30sn)')
-      .setStyle(ButtonStyle.Success);
-
-    const row = new ActionRowBuilder().addComponents(btn);
-    const gif = pickOne(THEFT_GIFS);
-
-    const sent = await message.reply({
-      content:
-        `🕵️ **ÇALMA GİRİŞİMİ**\n` +
-        `• Hırsız: <@${uid}>\n` +
-        `• Hedef: <@${target.id}>\n` +
-        `• Tutar: **${amt}** puan\n` +
-        `> <@${target.id}>, **30 saniye** içinde yeşil butona basarsan iptal edilir.`,
-      files: [gif],
-      components: [row],
-    });
-
-    theftUseCounter++;
-
-    // 30 sn buton bekçisi
-    try {
-      const interaction = await sent.awaitMessageComponent({
-        componentType: ComponentType.Button,
-        time: 30_000,
-        filter: (i) => {
-          // sadece mağdur basabilsin
-          if (i.user.id !== target.id) {
-            i.reply({ content: '⛔ Bu butona sadece soyulan kişi basabilir.', ephemeral: true }).catch(()=>{});
-            return false;
-          }
-          return i.customId.startsWith('cal-cancel:');
-        },
-      });
-
-      if (interaction) {
-        // İPTAL
-        await interaction.update({
-          content:
-            `❌ **ÇALMA İPTAL EDİLDİ**\n` +
-            `• Hırsız: <@${uid}>\n` +
-            `• Hedef: <@${target.id}>\n` +
-            `• Tutar: **${amt}** puan\n` +
-            `> <@${target.id}> butona bastı ve işlem iptal edildi.`,
-          components: [],
-        });
-      }
-    } catch (e) {
-      // ZAMAN AŞIMI → ÇALMA GERÇEKLEŞİR
-      const thiefBal = getPointsFromUnified(gid, uid);
-      const victimNow = getPointsFromUnified(gid, target.id); // butona basılmadığı için hâlâ ≥ amt olmalı; ama yine de emniyet
-      const realAmt = Math.max(1, Math.min(amt, victimNow));
-
-      setPointsUnified(gid, target.id, victimNow - realAmt);
-      setPointsUnified(gid, uid, thiefBal + realAmt);
-
-      await sent.edit({
-        content:
-          `✅ **ÇALMA BAŞARILI**\n` +
-          `• Hırsız: <@${uid}> → **+${realAmt}** (yeni bakiye: **${getPointsFromUnified(gid, uid)}**)\n` +
-          `• Mağdur: <@${target.id}> → **-${realAmt}** (yeni bakiye: **${getPointsFromUnified(gid, target.id)}**)\n` +
-          `> 30 sn içinde iptal gelmedi.`,
-        components: [],
-      }).catch(()=>{});
-    }
-
-    // Temizlik kontrolü
-    theftCleanupIfNeeded(message.guild).catch(()=>{});
-    return;
-  }
-  // =================== /ÇAL OYUNU ===================
-
   // ===================== YAZI OYUNU (sadece belirlenen kanalda) =====================
   if (cid === TYPING_CHANNEL_ID) {
+    // --- !yazıoyunu ---
     if (txt === '!yazıoyunu' || txt === '!yazioyunu' || txt === '!yazi-oyunu') {
       if (activeTypingGames.has(cid)) {
         return message.reply('⏳ Bu kanalda zaten aktif bir yazı oyunu var.');
       }
       const sentence = TYPING_SENTENCES[Math.floor(Math.random() * TYPING_SENTENCES.length)];
       await message.channel.send(
-`⌨️ **Yazı Oyunu** başlıyor! Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
+        `⌨️ **Yazı Oyunu** başlıyor! Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
 > ${sentence}
-⏱️ Süre: **60 saniye**
-📌 **Günlük limit:** Aynı üye max **4 kez** puan alabilir.`
+⏱️ Süre: **60 saniye**\n📌 **Günlük limit:** Aynı üye max **4 kez** puan alabilir.`
       );
       const timeoutId = setTimeout(() => {
         if (activeTypingGames.has(cid)) {
@@ -667,11 +794,11 @@ client.on('messageCreate', async (message) => {
           message.channel.send('⏰ Süre doldu! Kimse doğru yazamadı.');
         }
       }, 60_000);
-
       activeTypingGames.set(cid, { sentence, startedAt: Date.now(), timeoutId });
       return;
     }
 
+    // --- Aktif oyunda doğru yazanı tespit et ---
     if (activeTypingGames.has(cid)) {
       if (!txt.startsWith('!')) {
         const game = activeTypingGames.get(cid);
@@ -689,10 +816,8 @@ client.on('messageCreate', async (message) => {
               `⛔ **${message.author}**, bugün Yazı Oyunundan alabileceğin **4 ödül sınırına** ulaştın. Yarın tekrar dene!`
             );
           }
-
           dailyTypingWins.set(dKey, current + 1);
           addPoints(gid, uid, 3);
-
           return void message.channel.send(
             `🏆 **${message.author}** doğru yazdı ve **+3 puan** kazandı! (Günlük yazı ödülün: **${current + 1}/4**) \n> _${game.sentence}_`
           );
@@ -740,11 +865,10 @@ client.on('messageCreate', async (message) => {
   ↳ **Günlük limit:** aynı üye max **4** kez puan alır.  
 • \\!yazı bonus — Günlük **+15** yazı bonusu (İstanbul gününe göre).  
 • \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst. Kazan: **+3**, Kaybet: **-1**.  
-  ↳ 2x üst üste kayıp: ek **-3** (toplam **-4**, “Cooked”).  
-• \\!zar bonus — Günlük **+15** zar bonusu (İstanbul gününe göre).  
-• \\!oyunsıralama — Birleşik **puan sıralaması**.  
+  ↳ 2x üst üste kayıp: ek **-3** (o elde toplam **-4**, “Cooked” uyarısı).  
+• \\!zar bonus — Günlük **+15** zar bonusu.  
+• \\!oyunsıralama — Zar + Yazı **birleşik puan sıralaması**.  
 • \\!zar puan / \\!yazıpuan — Aynı birleşik kasadan ilk 10’u gösterir.
-• \\!çal @üye <miktar?> — **30sn iptal şansı** olan çalma oyunu (sadece ${formatAllowedChannels()}).
 
 💞 **Etkileşim**
 • \\!sarıl @kullanıcı — **<#${HUG_CHANNEL_ID}>** kanalında sarılma GIF’i ile sarılır.
@@ -763,6 +887,7 @@ client.on('messageCreate', async (message) => {
 
 🕹️ **OwO Kısıtı**
 • OwO komutları (ör. \\w daily, \\w cf <sayı>) sadece: <#1369332479462342666>, <#${REDIRECT_CHANNEL_ID}>.
+• Diğer kanallarda otomatik uyarı ve (iznin varsa) mesaj silme çalışır.
 
 🛒 **Market**
 • \\!yardimmarket — Market kullanımını ve satılık rolleri gösterir.
@@ -774,7 +899,7 @@ client.on('messageCreate', async (message) => {
 • (Owner) \\!puan-ver @kisi <miktar> — Sınırsız puan verme.
 
 ℹ️ **Notlar**
-• Zar + Yazı + Çal puanları **tek kasada** toplanır; market ile birlikte kullanılır.
+• Zar + Yazı puanları **tek kasada** toplanır; market ile birlikte kullanılır.
 • Bonuslar **günde 1 kez** alınır (İstanbul saatine göre).
 • Owner/Yetkili komutları için \\!yardımyetkili yaz.`;
     return void message.reply(helpText);
@@ -785,7 +910,6 @@ client.on('messageCreate', async (message) => {
     const joke = ESPIRI_TEXTS[Math.floor(Math.random() * ESPIRI_TEXTS.length)];
     return void message.reply(joke);
   }
-
   if (txt === '!yazıtura' || txt === '!yazi-tura' || txt === '!yazı-tura') {
     const sonuc = Math.random() < 0.5 ? '🪙 **YAZI** geldi!' : '🪙 **TURA** geldi!';
     return void message.reply(`${sonuc} 🎲`);
@@ -803,7 +927,6 @@ client.on('messageCreate', async (message) => {
     const total = addPoints(gid, uid, 15);
     return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun puanın: **${total}**`);
   }
-
   if (txt === '!zar bonus' || txt === '!zarbonus' || txt === '!zar-bonus') {
     if (!gid) return;
     const day = todayTR();
@@ -825,17 +948,13 @@ client.on('messageCreate', async (message) => {
       const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
       return message.reply(`🎯 **Oyun Puanı Sıralaması**\n${table}`);
     }
-
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
     const secim = secimRaw.replace('ust', 'üst');
     if (!['üst', 'alt'].includes(secim)) {
-      return void message.reply(
-        'Kullanım: !zar üst veya !zar alt\nKural: **1-3 = alt**, **4-6 = üst**'
-      );
+      return void message.reply('Kullanım: !zar üst veya !zar alt\nKural: **1-3 = alt**, **4-6 = üst**');
     }
-
-    const roll = Math.floor(Math.random() * 6) + 1;
+    const roll = Math.floor(Math.random() * 6) + 1; // 1..6
     const sonuc = roll <= 3 ? 'alt' : 'üst';
     const kazandi = secim === sonuc;
 
@@ -851,26 +970,20 @@ client.on('messageCreate', async (message) => {
       const newStreak = (diceLossStreak.get(key) || 0) + 1;
       diceLossStreak.set(key, newStreak);
       delta = -1;
-
       if (newStreak >= 2) {
-        delta -= 3;
+        delta -= 3; // toplam -4
         extraNote = '\n🔥 **Cooked!** İki kez üst üste kaybettin, **-3 puan ceza.**';
         gif = COOKED_GIFS[Math.floor(Math.random() * COOKED_GIFS.length)];
         diceLossStreak.set(key, 0);
       }
     }
-
     const total = addPoints(gid, uid, delta);
     const baseText = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}** ${
       kazandi ? 'Kazandın 🎉 (**+3** puan)' : 'Kaybettin 😿 (**-1** puan)'
     }\n📦 Toplam oyun puanın: **${total}**`;
-
-    return void message.reply({
-      content: `${baseText}${extraNote}`,
-      files: [gif],
-    });
+    return void message.reply({ content: `${baseText}${extraNote}`, files: [gif] });
   }
-  // ---------- /ZAR ----------
+  // ---------- /ZAR (PUANLI) ----------
 
   // --------- BİRLEŞİK SIRALAMA & KISA YOL KOMUTLARI ---------
   if (txt === '!oyunsıralama' || txt === '!oyunsiralama' || txt === '!oyun-sıralama') {
@@ -880,7 +993,6 @@ client.on('messageCreate', async (message) => {
     const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
     return message.reply(`🏆 **Birleşik Oyun Puanı Sıralaması**\n${table}`);
   }
-
   if (txt === '!yazıpuan' || txt === '!yazipuan' || txt === '!yazi-puan') {
     if (!gid) return;
     const top = guildTop(gid, 10);
@@ -895,36 +1007,70 @@ client.on('messageCreate', async (message) => {
       return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
     }
     const isOwner = OWNERS.includes(uid);
-    const hasRole =
-      hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES) ||
-      hasAnyRole(message.member, MUTE_ALLOWED_ROLES);
+    const hasRole = hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES) || hasAnyRole(message.member, MUTE_ALLOWED_ROLES);
     if (!isOwner && !hasRole) {
       return message.reply('⛔ Bu yardımı görme yetkin yok.');
     }
     const adminHelp = `🛠️ **Yönetici/Owner Yardımı**
 
 **Moderasyon**
-• **!ban <kullanıcıId>** — (Owner)
-• **!unban <kullanıcıId>** — (Owner)
-• **!mute <kullanıcıId> <dakika>** — (Owner/Yetkili)
-• **!sohbet-sil <1–100>** — (Owner) (14 günden eski hariç)
+• **!ban <kullanıcıId>** — (Owner) Kullanıcıyı yasaklar. Gerekli izin: **Üyeleri Yasakla**.
+• **!unban <kullanıcıId>** — (Owner) Banı kaldırır. Gerekli izin: **Üyeleri Yasakla**.
+• **!mute <kullanıcıId> <dakika>** — (Owner veya yetkili rol) Zaman aşımı. 1–43200 dk.
+• **!sohbet-sil <1–100>** — (Owner) Kanaldaki mesajları toplu siler (14 günden eski hariç).
 
-**Sayaç/İstatistik**
-• **!sohbet-sifirla** • **!ses-sifirla**
+**Sayaç/İstatistik Sıfırlama**
+• **!sohbet-sifirla** — (Owner) Sohbet liderliği sayaçlarını temizler.
+• **!ses-sifirla** — (Owner) Ses istatistiklerini sıfırlar.
 
-**Yazı Oyunu** (**<#${TYPING_CHANNEL_ID}>**)
-• **!yazıiptal** • **!yazıresetle**
+**Yazı Oyunu Yönetimi** *(sadece **<#${TYPING_CHANNEL_ID}>** kanalında)*
+• **!yazıiptal** — (Owner) Aktif yarışmayı iptal eder.
 
-**OwO**
-• **!owo-izin** • **!owo-test**
+**OwO İzinleri**
+• **!owo-izin** — (Owner) OwO botu için kanal bazlı izinleri toplu uygular.
+• **!owo-test** — Bulunduğun kanalda OwO komutlarına izin var mı gösterir.
 
-Owner ID’leri: ${OWNERS.join(', ')}`;
+> Owner ID’leri: ${OWNERS.join(', ')}`;
     return void message.reply(adminHelp);
   }
 
-  // ====================== ÇİÇEK / LOL / Mentionlı sohbet vb. — senin blokların (değiştirilmeden) ======================
+  // ====================== ÇİÇEK DİYALOĞU ======================
+  if (txt.includes('en sevdiğin çiçek ne baba')) {
+    return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
+  }
+  if (/en sevdiğim çiçek/i.test(txt)) {
+    const raw = message.content.replace(/<@!?\d+>/g, '').trim();
+    const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
+    const userSaid = (m && m[1] ? m[1] : '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[.,!?]+$/, '');
+    const found = FLOWER_LIST.find((f) => tLower(userSaid).includes(tLower(f)));
+    const replyText = FLOWER_RESPONSES[Math.floor(Math.random() * FLOWER_RESPONSES.length)];
+    if (found) return void message.reply(replyText);
+    else return void message.reply(`Ooo ${(userSaid || 'bu çiçeği')} mi diyorsun? 🌼 ${replyText}`);
+  }
+  // ==================== / ÇİÇEK DİYALOĞU ======================
+
+  // ====================== LOL KARAKTER DİYALOĞU ======================
+  if (txt.includes('en sevdiğin lol karakteri') || txt.includes('en sevdigin lol karakteri')) {
+    return void message.reply('En sevdiğim karakter **Zed** 💀 babasıyımdır; senin mainin ne?');
+  }
+  if (/mainim\s+([a-zA-Zçğıöşü\s'.-]+)/i.test(txt)) {
+    const match = txt.match(/mainim\s+([a-zA-Zçğıöşü\s'.-]+)/i);
+    const champ = match ? match[1].trim().toLowerCase() : null;
+    if (champ) {
+      const found = Object.keys(LOL_RESPONSES).find((c) => champ.includes(c));
+      if (found) return void message.reply(LOL_RESPONSES[found]);
+      else return void message.reply(`Ooo ${champ}? Yeni meta mı çıktı babuş 😏`);
+    }
+  }
+  // ==================== / LOL KARAKTER DİYALOĞU ======================
+
+  // ----------- REPLY TABANLI OTOMATİK CEVAPLAR -----------
   await handleReplyReactions(message);
 
+  // ----------- BOT MENTION + KİŞİSEL SOHBET -----------
   if (message.mentions.users.has(client.user.id)) {
     const found = PERSONAL_RESPONSES.find((item) => lc.includes(item.key));
     if (found) {
@@ -943,6 +1089,7 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
       const reply = HAPPY_REPLIES[Math.floor(Math.random() * HAPPY_REPLIES.length)];
       return void message.reply(reply);
     }
+    // 👉 Gay / Lez
     if (/(gay ?m[iı]sin|gaym[iı]s[iı]n|lez ?m[iı]sin|lezbiyen ?m[iı]sin|lezm[iı]s[iı]n)/i.test(lc)) {
       return void message.reply({
         content: 'hmmmm… düşünmem lazım 😶‍🌫️ sanırım gayım… ne bileyim ben 🤔',
@@ -971,7 +1118,6 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     for (const [k, sec] of totals)
       if (k.startsWith(`${gid}:`)) data.push({ uid: k.split(':')[1], sec });
     if (!data.length) return message.reply('Ses kanalları bomboş... yankı bile yok 😴');
-
     data.sort((a, b) => b.sec - a.sec);
     const top = data
       .slice(0, 10)
@@ -979,18 +1125,14 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
       .join('\n');
     return void message.reply(`🎙️ **Ses Liderliği Paneli**\n${top}`);
   }
-
   if (txt === '!sesme') {
     if (!gid) return;
     const k = vKey(gid, uid);
     let totalSec = totals.get(k) || 0;
     if (joinTimes.has(k)) totalSec += Math.floor((Date.now() - joinTimes.get(k)) / 1000);
     if (!totalSec) return message.reply('Henüz seste hiç vakit geçirmemişsin 👀');
-    return void message.reply(
-      `🎧 **${message.author.username}**, toplam ses süren: **${formatTime(totalSec)}** ⏱️`
-    );
+    return void message.reply(`🎧 **${message.author.username}**, toplam ses süren: **${formatTime(totalSec)}** ⏱️`);
   }
-
   if (txt === '!sohbet') {
     if (!gid) return;
     const arr = [];
@@ -998,17 +1140,12 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
       if (k.startsWith(`${gid}:${SOHBET_KANAL_ID}:`)) arr.push({ uid: k.split(':')[2], count });
     }
     if (!arr.length) return message.reply('Bu kanalda henüz mesaj yazılmamış 💤');
-
     arr.sort((a, b) => b.count - a.count);
-    const top = arr
-      .slice(0, 10)
-      .map((r, i) => `**${i + 1}.** <@${r.uid}> — ${r.count} mesaj`)
-      .join('\n');
+    const top = arr.slice(0, 10).map((r, i) => `**${i + 1}.** <@${r.uid}> — ${r.count} mesaj`).join('\n');
     return message.reply(`💬 **Sohbet Liderliği** (<#${SOHBET_KANAL_ID}>)\n${top}`);
   }
 
   // ====================== OWNER KOMUTLARI ======================
-
   if (txt === '!ses-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) {
@@ -1018,7 +1155,6 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     const label = OWNER_LABEL[uid] || 'hayhay';
     return void message.reply(`🎙️ ${label} — Ses verileri sıfırlandı!`);
   }
-
   if (txt === '!sohbet-sifirla') {
     if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     if (gid) for (const k of [...messageCount.keys()]) if (k.startsWith(`${gid}:`)) messageCount.delete(k);
@@ -1026,23 +1162,18 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     return void message.reply(`💬 ${label} — Sohbet liderliği sıfırlandı!`);
   }
 
+  // OwO izin ayarları (stub)
   if (txt === '!owo-izin') return void handleOwoIzinCommand(message);
   if (txt === '!owo-test') return void handleOwoTest(message);
 
+  // Ban
   if (txt.startsWith('!ban')) {
-    if (!inCommandChannel(message)) {
-      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
-    }
-    if (!OWNERS.includes(uid)) {
-      return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
-    }
-
+    if (!inCommandChannel(message)) return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+    if (!OWNERS.includes(uid)) return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
     const m = message.content.match(/^!ban\s+(\d{17,20})$/);
     if (!m) return message.reply('Kullanım: !ban <kullanıcıId>');
-
     const targetId = m[1];
     if (!message.guild) return;
-
     try {
       const me = message.guild.members.me;
       if (!me.permissions.has(PermissionFlagsBits.BanMembers)) {
@@ -1050,12 +1181,10 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
       }
       if (OWNERS.includes(targetId)) return message.reply('⛔ Owner’ları banlayamam.');
       if (targetId === me.id) return message.reply('⛔ Kendimi banlayamam.');
-
       const member = await message.guild.members.fetch(targetId).catch(() => null);
       if (member && !member.bannable) {
         return message.reply('⛔ Bu üyeyi banlayamıyorum (rol hiyerarşisi/izin).');
       }
-
       await message.guild.members.ban(targetId, { reason: `Owner ban: ${message.author.tag}` });
       return void message.reply(`✅ <@${targetId}> banlandı.`);
     } catch (e) {
@@ -1064,31 +1193,21 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     }
   }
 
+  // Unban
   if (txt.startsWith('!unban')) {
-    if (!inCommandChannel(message)) {
-      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
-    }
-    if (!OWNERS.includes(uid)) {
-      return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
-    }
-
+    if (!inCommandChannel(message)) return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
+    if (!OWNERS.includes(uid)) return message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
     const m = message.content.match(/^!unban\s+(\d{17,20})$/);
     if (!m) return message.reply('Kullanım: `!unban <kullanıcıId>`');
-
     const targetId = m[1];
     if (!message.guild) return;
-
     try {
       const me = message.guild.members.me;
       if (!me.permissions.has(PermissionFlagsBits.BanMembers)) {
         return message.reply('⛔ Gerekli yetki yok: **Üyeleri Yasakla**');
       }
-
       const banEntry = await message.guild.bans.fetch(targetId).catch(() => null);
-      if (!banEntry) {
-        return message.reply('ℹ️ Bu kullanıcı şu anda banlı görünmüyor.');
-      }
-
+      if (!banEntry) return message.reply('ℹ️ Bu kullanıcı şu anda banlı görünmüyor.');
       await message.guild.members.unban(targetId, `Owner unban: ${message.author.tag}`);
       return void message.reply(`✅ <@${targetId}> kullanıcısının banı kaldırıldı.`);
     } catch (e) {
@@ -1097,31 +1216,18 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     }
   }
 
+  // Mute
   if (txt.startsWith('!mute')) {
-    if (!inCommandChannel(message)) {
-      return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
-    }
-
+    if (!inCommandChannel(message)) return message.reply(`⛔ Bu komut sadece <#${COMMAND_CHANNEL_ID}> kanalında kullanılabilir.`);
     const invokerIsOwner = OWNERS.includes(uid);
-    const invokerHasRole =
-      hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES) ||
-      hasAnyRole(message.member, MUTE_ALLOWED_ROLES);
-
-    if (!invokerIsOwner && !invokerHasRole) {
-      return message.reply('⛔ Bu komutu kullanamazsın (gerekli rol yok).');
-    }
-
+    const invokerHasRole = hasAnyRole(message.member, ADMIN_HELP_ALLOWED_ROLES) || hasAnyRole(message.member, MUTE_ALLOWED_ROLES);
+    if (!invokerIsOwner && !invokerHasRole) return message.reply('⛔ Bu komutu kullanamazsın (gerekli rol yok).');
     const m = message.content.match(/^!mute\s+(\d{17,20})\s+(\d{1,5})$/);
-    if (!m)
-      return message.reply(
-        'Kullanım: !mute <kullanıcıId> <dakika> (ör. !mute 123456789012345678 15)'
-      );
-
+    if (!m) return message.reply('Kullanım: !mute <kullanıcıId> <dakika> (ör. !mute 123456789012345678 15)');
     const targetId = m[1];
-    const minutes = Math.max(1, Math.min(43200, parseInt(m[2], 10)));
+    const minutes = Math.max(1, Math.min(43200, parseInt(m[2], 10))); // 1 dk - 30 gün
     const ms = minutes * 60 * 1000;
     if (!message.guild) return;
-
     try {
       const me = message.guild.members.me;
       if (!me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
@@ -1129,12 +1235,9 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
       }
       if (OWNERS.includes(targetId)) return message.reply('⛔ Owner’ları muteleyemem.');
       if (targetId === me.id) return message.reply('⛔ Kendimi muteleyemem.');
-
       const member = await message.guild.members.fetch(targetId).catch(() => null);
       if (!member) return message.reply('⛔ Kullanıcı bulunamadı.');
-      if (!member.moderatable)
-        return message.reply('⛔ Bu üyeyi muteleyemiyorum (rol hiyerarşisi/izin).');
-
+      if (!member.moderatable) return message.reply('⛔ Bu üyeyi muteleyemiyorum (rol hiyerarşisi/izin).');
       await member.timeout(ms, `Mute by ${message.author.tag} (${minutes} dk)`);
       return void message.reply(`✅ <@${targetId}> **${minutes} dk** susturuldu.`);
     } catch (e) {
@@ -1143,29 +1246,23 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
     }
   }
 
+  // Owner → (!sohbet-sil <adet>)
   if (txt.startsWith('!sohbet-sil')) {
-    if (!OWNERS.includes(uid))
-      return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
-
+    if (!OWNERS.includes(uid)) return message.reply('Bu komutu sadece bot sahipleri kullanabilir ⚠️');
     const m = txt.match(/^!sohbet-sil\s+(\d{1,3})$/);
     if (!m) return message.reply('Kullanım: !sohbet-sil <adet> (1–100)');
-
     const adet = Math.max(1, Math.min(100, parseInt(m[1], 10)));
     const me = message.guild?.members?.me;
-
     if (!me || !me.permissionsIn(message.channel).has(PermissionFlagsBits.ManageMessages)) {
       return message.reply('⛔ Gerekli yetki yok: **Mesajları Yönet**');
     }
-
     try {
-      const deleted = await message.channel.bulkDelete(adet, true);
+      const deleted = await message.channel.bulkDelete(adet, true); // 14 günden eski atlanır
       const info = await message.channel.send(`🧹 ${deleted.size} mesaj silindi.`);
       setTimeout(() => info.delete().catch(() => {}), 5000);
     } catch (e) {
       console.error('!sohbet-sil hatası:', e);
-      return message.reply(
-        '⛔ Silme başarısız (14 günden eski olabilir veya kanal tipi desteklemiyor).'
-      );
+      return message.reply('⛔ Silme başarısız (14 günden eski olabilir veya kanal tipi desteklemiyor).');
     }
   }
 });
@@ -1174,7 +1271,6 @@ Owner ID’leri: ${OWNERS.join(', ')}`;
 client.on('channelDelete', async (channel) => {
   try {
     if (channel?.id !== SOHBET_KANAL_ID) return;
-
     const guild = channel.guild;
     if (!guild) return;
 
@@ -1185,30 +1281,19 @@ client.on('channelDelete', async (channel) => {
       const logs = await guild.fetchAuditLogs({ type: AuditLogEvent.ChannelDelete, limit: 1 });
       const entry = logs.entries.first();
       if (entry && entry.target?.id === channel.id) executor = entry.executor || null;
-    } catch (e) {
-      console.error('Audit log okunamadı:', e);
-    }
+    } catch (e) { console.error('Audit log okunamadı:', e); }
 
     let kickResult = 'Belirsiz';
-
     if (executor && !OWNERS.includes(executor.id)) {
       try {
         const member = await guild.members.fetch(executor.id).catch(() => null);
         if (member && member.kickable) {
           await member.kick('Koruma: sohbet kanalını izinsiz silme.');
           kickResult = 'Kick atıldı ✅';
-        } else {
-          kickResult = 'Kick atılamadı ⛔ (yetki / hiyerarşi / bulunamadı)';
-        }
-      } catch (e) {
-        kickResult = 'Kick denemesi hatası ⛔';
-        console.error('Kick hatası:', e);
-      }
-    } else if (executor && OWNERS.includes(executor.id)) {
-      kickResult = 'Owner sildi, işlem yok';
-    } else {
-      kickResult = 'Silen tespit edilemedi ⛔ (audit log gecikmesi / izin)';
-    }
+        } else kickResult = 'Kick atılamadı ⛔ (yetki / hiyerarşi / bulunamadı)';
+      } catch (e) { kickResult = 'Kick denemesi hatası ⛔'; console.error('Kick hatası:', e); }
+    } else if (executor && OWNERS.includes(executor.id)) kickResult = 'Owner sildi, işlem yok';
+    else kickResult = 'Silen tespit edilemedi ⛔ (audit log gecikmesi / izin)';
 
     const info = `⚠️ **Kanal Koruma**
 + Silinen kanal: <#${SOHBET_KANAL_ID}> (${SOHBET_KANAL_ID})
@@ -1216,42 +1301,32 @@ client.on('channelDelete', async (channel) => {
 + İşlem: ${kickResult}`;
 
     for (const id of OWNERS) {
-      try {
-        const u = await client.users.fetch(id);
-        await u.send(info);
-      } catch {}
+      try { const u = await client.users.fetch(id); await u.send(info); } catch {}
     }
-  } catch (err) {
-    console.error('channelDelete koruma hatası:', err);
-  }
+  } catch (err) { console.error('channelDelete koruma hatası:', err); }
 });
 
-// ====================== READY / HATA LOG =======================
+// ====================== READY / HAZIR ==========================
 client.once('ready', async () => {
   console.log(`✅ Bot aktif: ${client.user.tag}`);
   client.user.setPresence({
-    activities: [
-      {
-        name: 'Sagi tarafından oluşturuldu — yardım için sagimokhtari',
-        type: ActivityType.Playing,
-      },
-    ],
+    activities: [{ name: 'Fang Yuan | !yardım', type: ActivityType.Playing }],
     status: 'online',
   });
 
+  // 🔔 ÜYE REHBERİ MESAJI — bot açıldığında otomatik gönder
   try {
     const channel = await client.channels.fetch(GUIDE_CHANNEL_ID).catch(() => null);
     if (channel) {
       const guide = `🐉 **Fang Yuan Bot • Üye Rehberi**
 
 Selam dostum 👋 Ben **Fang Yuan Bot**!
-Artık **tek kasalı** oyun sistemim var: Zar + Yazı + Çal puanların **aynı yerde** toplanır.
+Artık **tek kasalı** oyun sistemim var: Zar + Yazı puanların **aynı yerde** toplanır.
 
 🎮 **Kısayollar**
 • !yazıoyunu — 60 sn yazı yarışması (**<#${TYPING_CHANNEL_ID}>**) | Günlük yazı ödülü limiti: **4**
-• !yazı bonus / !zar bonus — Her biri **günde +15** (İstanbul)
+• !yazı bonus / !zar bonus — Her biri **günde +15** (İstanbul gününe göre)
 • !zar üst / !zar alt — Kazan: +3 | Kaybet: -1 | 2x kayıp = ek -3 (COOKED)
-• !çal @üye <miktar?> — 30 sn iptal şanslı çalma (sadece ${formatAllowedChannels()})
 • !oyunsıralama — Birleşik puan sıralaması
 • !yardım — Tüm komut listesi
 
@@ -1261,18 +1336,13 @@ Artık **tek kasalı** oyun sistemim var: Zar + Yazı + Çal puanların **aynı 
     } else {
       console.warn('⚠️ Rehber gönderilecek kanal bulunamadı.');
     }
-  } catch (e) {
-    console.error('Rehber mesajı gönderilemedi:', e);
-  }
+  } catch (e) { console.error('Rehber mesajı gönderilemedi:', e); }
 });
 
-// Basit stub’lar — varsa kendi fonksiyonlarınla değiştir.
+// ====================== STUB KOMUTLAR ==========================
 async function handleOwoIzinCommand(message) {
-  try {
-    return void message.reply('🛠️ (Örnek) OwO izin yapılandırması tamam simülasyonu ✅');
-  } catch {
-    return void message.reply('⛔ OwO izin ayarında bir hata oluştu.');
-  }
+  try { return void message.reply('🛠️ (Örnek) OwO izin yapılandırması tamam simülasyonu ✅'); }
+  catch { return void message.reply('⛔ OwO izin ayarında bir hata oluştu.'); }
 }
 async function handleOwoTest(message) {
   const allowed = ALLOWED_GAME_CHANNELS.has(message.channel?.id ?? '');
@@ -1283,5 +1353,44 @@ async function handleOwoTest(message) {
   );
 }
 
+// ====================== GÜVENLİ LOGIN & OTO-RETRY ======================
+const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN || '';
+if (!TOKEN) {
+  console.error('⛔ DISCORD_TOKEN bulunamadı. .env dosyana DISCORD_TOKEN=... ekle!');
+  process.exit(1);
+}
+client.on('shardError', (e) => console.error('🔌 ShardError:', e));
+client.on('error', (e) => console.error('🧨 Client error:', e));
+client.on('warn', (m) => console.warn('⚠️ Warn:', m));
+client.on('shardDisconnect', (event, shardId) => {
+  console.warn(`🔌 Shard ${shardId} bağlantı koptu:`, event?.code, event?.reason || '');
+});
+client.on('shardReconnecting', (shardId) => console.log(`♻️ Shard ${shardId} yeniden bağlanıyor...`));
+client.on('shardReady', (shardId) => console.log(`✅ Shard ${shardId} hazır`));
+client.on('resume', () => console.log('🔁 Oturum devam ediyor (resume)'));
+
+async function startBot() {
+  try {
+    console.log('🔑 Login deneniyor...');
+    await client.login(TOKEN);
+    console.log('✅ Login başarılı!');
+  } catch (err) {
+    console.error('⛔ Login başarısız! 15 sn sonra yeniden denenecek.\nHata:', err?.message || err);
+    setTimeout(startBot, 15000);
+  }
+}
+startBot();
+
+// (Render/Railway gibi hostlar için) kendini sıcak tut
+setInterval(() => {
+  try {
+    client.user?.setPresence({
+      activities: [{ name: 'Fang Yuan | !yardım', type: ActivityType.Playing }],
+      status: 'online',
+    });
+  } catch {}
+}, 14 * 60 * 1000);
+
+// ====================== GENEL HATA YAKALAYICI ===================
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
