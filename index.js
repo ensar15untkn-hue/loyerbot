@@ -327,13 +327,13 @@ const LOL_RESPONSES = {
 };
 
 // Yeni eklemeler (eksikleri tamamlar)
-const LOL_NEW = { /* …(kısaltıldı: önceki listendeki tüm yeni champ cevapları burada)… */ };
+const LOL_NEW = { /* …(kısaltıldı: yeni şampiyon varsa buraya ekleyebilirsin)… */ };
 for (const [k, v] of Object.entries(LOL_NEW)) {
   if (!(k in LOL_RESPONSES)) LOL_RESPONSES[k] = v;
 }
 
 // ====================== (YENİ) TEK KASA OYUN SİSTEMİ ======================
-const gamePoints = new Map(); // key: gid:uid -> pts
+const gamePoints = new Map(); // key: gid:uid -> pts (değiştirmedik; sadece metinlerde coin)
 const dailyTypingWins = new Map(); // key: gid:uid:YYYY-MM-DD -> count
 const dailyClaimYaziBonus = new Map(); // key: gid:uid:YYYY-MM-DD -> true
 const dailyClaimZarBonus  = new Map(); // key: gid:uid:YYYY-MM-DD -> true
@@ -401,27 +401,27 @@ client.on('messageCreate', async (message) => {
     if (txt === '!yardimmarket') {
       const refund = Math.floor(ROLE_PRICE / 2);
       const lines = MARKET_ROLE_IDS.length
-        ? MARKET_ROLE_IDS.map((rid, i) => `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`).join('\n')
+        ? MARKET_ROLE_IDS.map((rid, i) => `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} coin**`).join('\n')
         : '_(Market boş görünüyor — rol ID ekleyin)_';
       return void message.reply(
-`🛒 **Market & Puan Yardımı**
-• **!puan** — Mevcut puanını gösterir.
+`🛒 **Market & Coin Yardımı**
+• **!coin** — Mevcut coin’ini gösterir.
 • **!rollerimarket** — Market rollerini listeler ve fiyatları gösterir.
-• **!market al <rolId>** — **${ROLE_PRICE} puan** karşılığı rol satın alır.
-• **!market iade <rolId>** — Rol iadesi yapar, geri ödeme: **${refund} puan**.
-• **!puan gonder @kisi <miktar>** — Üyeye puan gönderir (bakiye kontrolü var).
-• **(Owner)** **!puan-ver @kisi <miktar>** — Sınırsız puan verme (bakiye kontrolü YOK).
+• **!market al <rolId>** — **${ROLE_PRICE} coin** karşılığı rol satın alır.
+• **!market iade <rolId>** — Rol iadesi yapar, geri ödeme: **${refund} coin**.
+• **!coin gonder @kisi <miktar>** — Üyeye coin gönderir (bakiye kontrolü var).
+• **(Owner)** **!coin-ver @kisi <miktar>** — Sınırsız coin verme (bakiye kontrolü YOK).
 
 __Market Rolleri__
 ${lines}`
       );
     }
 
-    // --- !puan
-    if (txt === '!puan') {
+    // --- !coin
+    if (txt === '!coin') {
       if (!gid) return;
       const bal = getPoints(gid, uid);
-      return void message.reply(`💰 Toplam oyun puanın: **${bal}**`);
+      return void message.reply(`💰 Toplam oyun coin’in: **${bal}**`);
     }
 
     // --- !rollerimarket
@@ -429,12 +429,12 @@ ${lines}`
       if (!message.guild) return;
       if (!MARKET_ROLE_IDS.length) return void message.reply('🛒 Market şu an boş görünüyor babuş.');
       const lines = MARKET_ROLE_IDS.map((rid, i) =>
-        `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} puan**`
+        `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} coin**`
       ).join('\n');
       const refund = Math.floor(ROLE_PRICE / 2);
       return void message.reply(
         `🧩 **Market Rolleri**\n${lines}\n\nSatın almak: \`!market al <rolId>\`\n` +
-        `İade: \`!market iade <rolId>\` (geri iade: **${refund}** puan)`
+        `İade: \`!market iade <rolId>\` (geri iade: **${refund}** coin)`
       );
     }
 
@@ -469,12 +469,12 @@ ${lines}`
         if (hasRole) return void message.reply('ℹ️ Bu role zaten sahipsin.');
         const bal = getPoints(gid, uid);
         if (bal < ROLE_PRICE) {
-          return void message.reply(`⛔ Yetersiz puan. Gerekli: **${ROLE_PRICE}**, Bakiye: **${bal}**`);
+          return void message.reply(`⛔ Yetersiz coin. Gerekli: **${ROLE_PRICE}**, Bakiye: **${bal}**`);
         }
         try {
           await member.roles.add(roleId, 'Market satın alma');
           setPoints(gid, uid, bal - ROLE_PRICE);
-          return void message.reply(`✅ <@&${roleId}> rolünü aldın! **-${ROLE_PRICE}** puan. Yeni bakiye: **${getPoints(gid, uid)}**`);
+          return void message.reply(`✅ <@&${roleId}> rolünü aldın! **-${ROLE_PRICE}** coin. Yeni bakiye: **${getPoints(gid, uid)}**`);
         } catch (e) {
           console.error('market al hata:', e);
           return void message.reply('⛔ Rol verilirken hata oluştu (izin/hiyerarşi).');
@@ -487,7 +487,7 @@ ${lines}`
         try {
           await member.roles.remove(roleId, 'Market iade');
           setPoints(gid, uid, getPoints(gid, uid) + refund);
-          return void message.reply(`↩️ <@&${roleId}> iade edildi. **+${refund}** puan geri yüklendi. Yeni bakiye: **${getPoints(gid, uid)}**`);
+          return void message.reply(`↩️ <@&${roleId}> iade edildi. **+${refund}** coin geri yüklendi. Yeni bakiye: **${getPoints(gid, uid)}**`);
         } catch (e) {
           console.error('market iade hata:', e);
           return void message.reply('⛔ Rol geri alınırken hata oluştu (izin/hiyerarşi).');
@@ -495,14 +495,14 @@ ${lines}`
       }
     }
 
-    // --- !puan gonder
-    if (txt.startsWith('!puan gonder') || txt.startsWith('!puan gönder')) {
+    // --- !coin gonder
+    if (txt.startsWith('!coin gonder') || txt.startsWith('!coin gönder')) {
       if (!gid) return;
       const target = message.mentions.users.first();
       const parts = message.content.trim().split(/\s+/);
       const amt = parseAmount(parts[parts.length - 1]);
-      if (!target || isNaN(amt)) return void message.reply('Kullanım: `!puan gonder @hedef <miktar>`');
-      if (target.id === uid) return void message.reply('⛔ Kendine puan gönderemezsin.');
+      if (!target || isNaN(amt)) return void message.reply('Kullanım: `!coin gonder @hedef <miktar>`');
+      if (target.id === uid) return void message.reply('⛔ Kendine coin gönderemezsin.');
       if (amt <= 0) return void message.reply('⛔ Miktar **pozitif** olmalı.');
       const fromBal = getPoints(gid, uid);
       if (fromBal < amt) {
@@ -510,11 +510,11 @@ ${lines}`
       }
       setPoints(gid, uid, fromBal - amt);
       setPoints(gid, target.id, getPoints(gid, target.id) + amt);
-      return void message.reply(`✅ <@${target.id}> kullanıcısına **${amt}** puan gönderdin. Yeni bakiyen: **${getPoints(gid, uid)}**`);
+      return void message.reply(`✅ <@${target.id}> kullanıcısına **${amt}** coin gönderdin. Yeni bakiyen: **${getPoints(gid, uid)}**`);
     }
 
-    // --- !puan-ver (owner)
-    if (txt.startsWith('!puan-ver')) {
+    // --- !coin-ver (owner)
+    if (txt.startsWith('!coin-ver')) {
       if (!gid) return;
       if (!__MARKET__FALLBACK_OWNERS.includes(uid)) {
         return void message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
@@ -522,10 +522,10 @@ ${lines}`
       const target = message.mentions.users.first();
       const parts = message.content.trim().split(/\s+/);
       const amt = parseAmount(parts[parts.length - 1]);
-      if (!target || isNaN(amt) || amt <= 0) return void message.reply('Kullanım: `!puan-ver @hedef <pozitif_miktar>`');
+      if (!target || isNaN(amt) || amt <= 0) return void message.reply('Kullanım: `!coin-ver @hedef <pozitif_miktar>`');
       setPoints(gid, target.id, getPoints(gid, target.id) + amt);
       const label = __MARKET__LABEL[uid] || 'Owner';
-      return void message.reply(`👑 ${label} — <@${target.id}> kullanıcısına **${amt}** puan verildi. Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`);
+      return void message.reply(`👑 ${label} — <@${target.id}> kullanıcısına **${amt}** coin verildi. Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`);
     }
 
   } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
@@ -639,11 +639,11 @@ async function handleReplyReactions(message) {
 }
 
 /* ====================== ZAR OYUNU KURALLARI ======================
-  - Kazanırsa: +3 puan
-  - Kaybederse: -1 puan
+  - Kazanırsa: +3 coin
+  - Kaybederse: -1 coin
   - 2 kez üst üste kaybederse: ek -3 ceza (o elde toplam -4) ve "Cooked" özel mesaj + gif
-  - Puanlar tek kasada: gamePoints
-  - !zar puan -> birleşik kasadan gösterir
+  - Coin’ler tek kasada: gamePoints
+  - !zar coin -> birleşik kasadan gösterir
 */
 const diceLossStreak = new Map(); // gid:uid -> ardışık kayıp sayısı
 const DICE_GIFS = [
@@ -716,7 +716,7 @@ client.on('messageCreate', async (message) => {
     if (activeSteals.has(key)) return message.reply('Bu kullanıcıyla zaten aktif bir çalma denemen var, 30 saniye bekle.');
 
     const victimBal = getPoints(gid, victim.id);
-    if (victimBal < STEAL_AMOUNT) return message.reply('Hedefin puanı yetersiz.');
+    if (victimBal < STEAL_AMOUNT) return message.reply('Hedefin coin’i yetersiz.');
 
     activeSteals.add(key);
 
@@ -730,7 +730,7 @@ client.on('messageCreate', async (message) => {
     );
 
     const gameMsg = await message.channel.send({
-      content: `${victim}, **${thief.tag}** senden **${STEAL_AMOUNT} puan** çalmaya çalışıyor! 30 saniye içinde butona basmazsan para gider 😈`,
+      content: `${victim}, **${thief.tag}** senden **${STEAL_AMOUNT} coin** çalmaya çalışıyor! 30 saniye içinde butona basmazsan para gider 😈`,
       components: [row],
     });
 
@@ -768,7 +768,7 @@ client.on('messageCreate', async (message) => {
       setPoints(gid, thief.id, getPoints(gid, thief.id) + STEAL_AMOUNT);
 
       await gameMsg.edit({
-        content: `💰 **${thief}**, **${victim}**'den **${STEAL_AMOUNT} puan** çaldı!`,
+        content: `💰 **${thief}**, **${victim}**'den **${STEAL_AMOUNT} coin** çaldı!`,
         components: [],
       });
 
@@ -839,7 +839,7 @@ client.on('messageCreate', async (message) => {
       await message.channel.send(
         `⌨️ **Yazı Oyunu** başlıyor! Aşağıdaki cümleyi **ilk ve doğru** yazan kazanır (noktalama önemsiz).
 > ${sentence}
-⏱️ Süre: **60 saniye**\n📌 **Günlük limit:** Aynı üye max **4 kez** puan alabilir.`
+⏱️ Süre: **60 saniye**\n📌 **Günlük limit:** Aynı üye max **4 kez** coin alabilir.`
       );
       const timeoutId = setTimeout(() => {
         if (activeTypingGames.has(cid)) {
@@ -872,7 +872,7 @@ client.on('messageCreate', async (message) => {
           dailyTypingWins.set(dKey, current + 1);
           addPoints(gid, uid, 3);
           return void message.channel.send(
-            `🏆 **${message.author}** doğru yazdı ve **+3 puan** kazandı! (Günlük yazı ödülün: **${current + 1}/4**) \n> _${game.sentence}_`
+            `🏆 **${message.author}** doğru yazdı ve **+3 coin** kazandı! (Günlük yazı ödülün: **${current + 1}/4**) \n> _${game.sentence}_`
           );
         }
       }
@@ -915,13 +915,13 @@ client.on('messageCreate', async (message) => {
 
 🎮 **Oyunlar (Tek Kasa)**
 • \\!yazıoyunu — **<#${TYPING_CHANNEL_ID}>** kanalında 60 sn'lik yazı yarışını başlatır.  
-  ↳ **Günlük limit:** aynı üye max **4** kez puan alır.  
+  ↳ **Günlük limit:** aynı üye max **4** kez coin alır.  
 • \\!yazı bonus — Günlük **+15** yazı bonusu (İstanbul gününe göre).  
 • \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst. Kazan: **+3**, Kaybet: **-1**.  
   ↳ 2x üst üste kayıp: ek **-3** (o elde toplam **-4**, “Cooked” uyarısı).  
 • \\!zar bonus — Günlük **+15** zar bonusu.  
-• \\!oyunsıralama — Zar + Yazı **birleşik puan sıralaması**.  
-• \\!zar puan / \\!yazıpuan — Aynı birleşik kasadan ilk 10’u gösterir.
+• \\!oyunsıralama — Zar + Yazı **birleşik coin sıralaması**.  
+• \\!zar coin / \\!yazıcoin — Aynı birleşik kasadan ilk 10’u gösterir.
 
 💞 **Etkileşim**
 • \\!sarıl @kullanıcı — **<#${HUG_CHANNEL_ID}>** kanalında sarılma GIF’i ile sarılır.
@@ -945,14 +945,14 @@ client.on('messageCreate', async (message) => {
 🛒 **Market**
 • \\!yardimmarket — Market kullanımını ve satılık rolleri gösterir.
 • \\!rollerimarket — Satıştaki rol listesi ve fiyatlar.
-• \\!market al <rolId> — Rol satın al (**${ROLE_PRICE} puan**).
-• \\!market iade <rolId> — İade (**${Math.floor(ROLE_PRICE/2)} puan** geri).
-• \\!puan — Puan bakiyen.
-• \\!puan gonder @kisi <miktar> — Puan transferi.
-• (Owner) \\!puan-ver @kisi <miktar> — Sınırsız puan verme.
+• \\!market al <rolId> — Rol satın al (**${ROLE_PRICE} coin**).
+• \\!market iade <rolId> — İade (**${Math.floor(ROLE_PRICE/2)} coin** geri).
+• \\!coin — Coin bakiyen.
+• \\!coin gonder @kisi <miktar> — Coin transferi.
+• (Owner) \\!coin-ver @kisi <miktar> — Sınırsız coin verme.
 
 ℹ️ **Notlar**
-• Zar + Yazı puanları **tek kasada** toplanır; market ile birlikte kullanılır.
+• Zar + Yazı coin’leri **tek kasada** toplanır; market ile birlikte kullanılır.
 • Bonuslar **günde 1 kez** alınır (İstanbul saatine göre).
 • Owner/Yetkili komutları için \\!yardımyetkili yaz.`;
     return void message.reply(helpText);
@@ -978,7 +978,7 @@ client.on('messageCreate', async (message) => {
     }
     dailyClaimYaziBonus.set(k, true);
     const total = addPoints(gid, uid, 15);
-    return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun puanın: **${total}**`);
+    return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
   if (txt === '!zar bonus' || txt === '!zarbonus' || txt === '!zar-bonus') {
     if (!gid) return;
@@ -989,17 +989,17 @@ client.on('messageCreate', async (message) => {
     }
     dailyClaimZarBonus.set(k, true);
     const total = addPoints(gid, uid, 15);
-    return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun puanın: **${total}**`);
+    return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
 
-  // ---------- ZAR (PUANLI) ----------
+  // ---------- ZAR (COIN’Lİ) ----------
   if (txt.startsWith('!zar')) {
-    if (txt.trim() === '!zar puan' || txt.trim() === '!zarpuan') {
+    if (txt.trim() === '!zar coin' || txt.trim() === '!zarcoin') {
       if (!gid) return;
       const top = guildTop(gid, 10);
-      if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
-      const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
-      return message.reply(`🎯 **Oyun Puanı Sıralaması**\n${table}`);
+      if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
+      const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
+      return message.reply(`🎯 **Oyun Coin Sıralaması**\n${table}`);
     }
     const parts = txt.trim().split(/\s+/);
     const secimRaw = parts[1] || '';
@@ -1025,33 +1025,33 @@ client.on('messageCreate', async (message) => {
       delta = -1;
       if (newStreak >= 2) {
         delta -= 3; // toplam -4
-        extraNote = '\n🔥 **Cooked!** İki kez üst üste kaybettin, **-3 puan ceza.**';
+        extraNote = '\n🔥 **Cooked!** İki kez üst üste kaybettin, **-3 coin ceza.**';
         gif = COOKED_GIFS[Math.floor(Math.random() * COOKED_GIFS.length)];
         diceLossStreak.set(key, 0);
       }
     }
     const total = addPoints(gid, uid, delta);
     const baseText = `🎲 Zar: **${roll}** → **${sonuc.toUpperCase()}** ${
-      kazandi ? 'Kazandın 🎉 (**+3** puan)' : 'Kaybettin 😿 (**-1** puan)'
-    }\n📦 Toplam oyun puanın: **${total}**`;
+      kazandi ? 'Kazandın 🎉 (**+3** coin)' : 'Kaybettin 😿 (**-1** coin)'
+    }\n📦 Toplam oyun coin’in: **${total}**`;
     return void message.reply({ content: `${baseText}${extraNote}`, files: [gif] });
   }
-  // ---------- /ZAR (PUANLI) ----------
+  // ---------- /ZAR (COIN’Lİ) ----------
 
   // --------- BİRLEŞİK SIRALAMA & KISA YOL KOMUTLARI ---------
   if (txt === '!oyunsıralama' || txt === '!oyunsiralama' || txt === '!oyun-sıralama') {
     if (!gid) return;
     const top = guildTop(gid, 10);
-    if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
-    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
-    return message.reply(`🏆 **Birleşik Oyun Puanı Sıralaması**\n${table}`);
+    if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
+    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
+    return message.reply(`🏆 **Birleşik Oyun Coin Sıralaması**\n${table}`);
   }
-  if (txt === '!yazıpuan' || txt === '!yazipuan' || txt === '!yazi-puan') {
+  if (txt === '!yazıcoin' || txt === '!yazicoin' || txt === '!yazi-coin') {
     if (!gid) return;
     const top = guildTop(gid, 10);
-    if (!top.length) return message.reply('🏁 Henüz oyun puanı yok.');
-    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** puan`).join('\n');
-    return message.reply(`📊 **Oyun Puanı Skor Tablosu**\n${table}`);
+    if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
+    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
+    return message.reply(`📊 **Oyun Coin Skor Tablosu**\n${table}`);
   }
 
   // ----------- YETKİLİ YARDIM -----------
@@ -1088,9 +1088,19 @@ client.on('messageCreate', async (message) => {
   }
 
   // ====================== ÇİÇEK DİYALOĞU ======================
+  // İSTEK 1: @bot en sevdiğin çiçek ne  → gül cevabı
+  if (message.mentions.users.has(client.user.id) && /en sevdiğin çiçek ne/i.test(lc)) {
+    return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
+  }
+  // Eski varyant
   if (txt.includes('en sevdiğin çiçek ne baba')) {
     return void message.reply('En sevdiğim çiçek güldür, anısı da var 😔 Seninki ne?');
   }
+  // İSTEK 2: “en sevdiğim çiçek güldür anısı var”
+  if (/en sevdiğim çiçek güldür anısı var/i.test(lc)) {
+    return void message.reply('Vay… o zaman aynı yerden yaralanmışız galiba 🌹 Neyse, gül güzel; dikenleri de hayatın parçası.');
+  }
+
   if (/en sevdiğim çiçek/i.test(txt)) {
     const raw = message.content.replace(/<@!?\d+>/g, '').trim();
     const m = raw.match(/en sevdiğim çiçek\s+(.+)/i);
@@ -1176,7 +1186,7 @@ client.on('messageCreate', async (message) => {
       .slice(0, 10)
       .map((r, i) => `**${i + 1}.** <@${r.uid}> — ${formatTime(r.sec)}`)
       .join('\n');
-    return void message.reply(`🎙️ **Ses Liderliği Paneli**\n${top}`);
+    return message.reply(`🎙️ **Ses Liderliği Paneli**\n${top}`);
   }
   if (txt === '!sesme') {
     if (!gid) return;
@@ -1374,13 +1384,13 @@ client.once('ready', async () => {
       const guide = `🐉 **Fang Yuan Bot • Üye Rehberi**
 
 Selam dostum 👋 Ben **Fang Yuan Bot**!
-Artık **tek kasalı** oyun sistemim var: Zar + Yazı puanların **aynı yerde** toplanır.
+Artık **tek kasalı** oyun sistemim var: Zar + Yazı coin’lerin **aynı yerde** toplanır.
 
 🎮 **Kısayollar**
 • !yazıoyunu — 60 sn yazı yarışması (**<#${TYPING_CHANNEL_ID}>**) | Günlük yazı ödülü limiti: **4**
 • !yazı bonus / !zar bonus — Her biri **günde +15** (İstanbul gününe göre)
 • !zar üst / !zar alt — Kazan: +3 | Kaybet: -1 | 2x kayıp = ek -3 (COOKED)
-• !oyunsıralama — Birleşik puan sıralaması
+• !oyunsıralama — Birleşik coin sıralaması
 • !yardım — Tüm komut listesi
 
 İyi eğlenceler babuş 💫`;
