@@ -668,17 +668,17 @@ const CLEAN_FETCH_LIMIT = 100;
 
 // Saat aralığı (İstanbul 16:00–00:59)
 function isWithinIstanbulWindow() {
-  const nowStr = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
-  const now = new Date(nowStr);
-  const h = now.getHours();
+  // İstanbul saatine göre UTC zamanı ayarlayıp çekelim:
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const utcOffset = 3; // Türkiye UTC+3
+  const h = (utcHours + utcOffset) % 24;
 
-  
-   // 🔍 Test çıktısı
-  console.log("İstanbul saati:", h);
+  console.log("İstanbul saati:", h); // Test için log
 
-  
-  return h >= 16 || h < 1;
+  return h >= 16 || h < 1; // 16:00 - 00:59 arası açık
 }
+
 
 
 let stealUseCounter = 0;
