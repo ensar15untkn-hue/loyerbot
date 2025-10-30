@@ -1394,3 +1394,130 @@ setInterval(() => {
 // ====================== GENEL HATA YAKALAYICI ===================
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
+// ====================== BUTONLU "ÇAL" MİNİ OYUNU ======================
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
+
+// Ayarlar
+const STEAL_ALLOWED_CHANNELS = new Set(['1268595926226829404','1433137197543854110']);
+const STEAL_LOG_CHANNEL = '1268595919050244188';
+const STEAL_AMOUNT = 2;
+const STEAL_TIMEOUT = 30_000; // 30 sn
+const STEAL_CLEANUP_THRESHOLD = 50;
+const CLEAN_FETCH_LIMIT = 100;
+
+// Saat aralığı (İstanbul 16:00–23:59)
+function isWithinIstanbulWindow() {
+  const nowStr = new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' });
+  const now = new Date(nowStr);
+  const h = now.getHours();
+  return h >= 16 && h <= 23;
+}
+
+let stealUseCounter = 0;
+const activeSteals = new Set();
+
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author.bot) return;
+    if (!message.content.toLowerCase().startsWith('!çal')) return;
+
+    // Saat kontrolü
+    if (!isWithinIstanbulWindow()) {
+      return message.reply('Bu saatlerde bu komutu kullanamazsın knk; uyuyan var, işe giden var, okula giden var. Haksızlık değil mi?');
+    }
+
+    const cid = message.channel.id;
+    if (!STEAL_ALLOWED_CHANNELS.has(cid)) {
+      return message.reply(
+        `⛔ Bu komutu burada kullanamazsın. Lütfen şu kanallardan birine geç: ${[...STEAL_ALLOWED_CHANNELS].map(x=>`<#${x}>`).join(', ')}`
+      );
+    }
+
+    const thief = message.author;
+    const victim = message.mentions.users.first();
+    if (!victim) return message.reply('Kullanım: `!çal @kullanıcı`');
+    if (victim.bot) return message.reply('Botlardan çalamazsın 😅');
+    if (victim.id === thief.id) return message.reply('Kendinden çalamazsın 🙂');
+
+    const gid = message.guild.id;
+    const key = `${thief.id}:${victim.id}`;
+    if (activeSteals.has(key)) return message.reply('Bu kullanıcıyla zaten aktif bir çalma denemen var, 30 saniye bekle.');
+
+    const victimBal = getPoints(gid, victim.id);
+    if (victimBal < STEAL_AMOUNT) return message.reply('Hedefin puanı yetersiz.');
+
+    activeSteals.add(key);
+
+    const cancelId = `cancel_${Date.now()}_${thief.id}_${victim.id}`;
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(cancelId)
+        .setLabel('İptal Et (30s)')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('⛔')
+    );
+
+    const msg = await message.channel.send({
+      content: `${victim}, **${thief.tag}** senden **${STEAL_AMOUNT} puan** çalmaya çalışıyor! 30 saniye içinde butona basmazsan para gider 😈`,
+      components: [row],
+    });
+
+    let prevented = false;
+
+    const collector = msg.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: STEAL_TIMEOUT,
+      filter: (i) => i.customId === cancelId && i.user.id === victim.id,
+    });
+
+    collector.on('collect', async (i) => {
+      prevented = true;
+      activeSteals.delete(key);
+      await i.update({
+        content: `🛡️ ${victim} çalmayı **iptal etti**! ${thief} eli boş döndü.`,
+        components: [],
+      });
+    });
+
+    collector.on('end', async () => {
+      if (prevented) return;
+      activeSteals.delete(key);
+      const victimBal2 = getPoints(gid, victim.id);
+      if (victimBal2 < STEAL_AMOUNT) {
+        return msg.edit({
+          content: `⚠️ ${victim} zaten fakirleşmiş, çalacak bir şey kalmadı.`,
+          components: [],
+        });
+      }
+
+      // Transfer
+      setPoints(gid, victim.id, victimBal2 - STEAL_AMOUNT);
+      setPoints(gid, thief.id, getPoints(gid, thief.id) + STEAL_AMOUNT);
+      msg.edit({
+        content: `💰 **${thief}**, **${victim}**'den **${STEAL_AMOUNT} puan** çaldı!`,
+        components: [],
+      });
+
+      // Sayaç kontrolü
+      stealUseCounter++;
+      if (stealUseCounter >= STEAL_CLEANUP_THRESHOLD) {
+        stealUseCounter = 0;
+        for (const chId of STEAL_ALLOWED_CHANNELS) {
+          const ch = await client.channels.fetch(chId).catch(()=>null);
+          if (!ch?.isTextBased?.()) continue;
+          const fetched = await ch.messages.fetch({ limit: CLEAN_FETCH_LIMIT }).catch(()=>null);
+          if (!fetched) continue;
+          const botMsgs = fetched.filter(m => m.author.id === client.user.id);
+          if (botMsgs.size) await ch.bulkDelete(botMsgs, true).catch(()=>{});
+        }
+        const logCh = await client.channels.fetch(STEAL_LOG_CHANNEL).catch(()=>null);
+        if (logCh?.isTextBased?.()) {
+          await logCh.send('🧹 **50 kullanım doldu! Çal komutu mesajları temizlendi.**');
+        }
+      }
+    });
+  } catch (err) {
+    console.error('!çal hata:', err);
+    try { await message.reply('Bir hata oluştu babuş.'); } catch {}
+  }
+});
