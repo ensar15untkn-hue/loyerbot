@@ -1394,6 +1394,3 @@ setInterval(() => {
 // ====================== GENEL HATA YAKALAYICI ===================
 process.on('unhandledRejection', (r) => console.error('UnhandledRejection:', r));
 process.on('uncaughtException', (e) => console.error('UncaughtException:', e));
-// ====================== BUTONLU "ÇAL" MİNİ OYUNU ======================
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
-
