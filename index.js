@@ -1094,41 +1094,59 @@ client.on('messageCreate', async (message) => {
   // ---------- /ZAR (COIN’Lİ) ----------
 
   
-// ====================== ŞANS KUTUSU SİSTEMİ ======================
+// ====================== ŞANS KUTUSU SİSTEMİ (Günlük 3 hak, %40 boş) ======================
 if (message.content.toLowerCase().startsWith('!şanskutusu')) {
-  const CHANCE_BOX_CHANNEL = '1433137197543854110'; // sadece bu kanalda çalışsın
+  const CHANCE_BOX_CHANNEL = '1433137197543854110'; // sadece bu kanalda
   if (message.channel.id !== CHANCE_BOX_CHANNEL) {
     return message.reply(`🎲 Bu komutu sadece <#${CHANCE_BOX_CHANNEL}> kanalında kullanabilirsin babuş.`);
   }
 
+  // 🔐 Günlük limit sayaç haritası (dosyaya tek sefer tanımlanır; burada güvenle kullan)
+  const dailyChanceBoxUses = (globalThis.__DAILY_CHANCE_BOX_USES__ ||= new Map());
+
   const userId = message.author.id;
   const guildId = message.guild.id;
+
+  // İstanbul gününe göre ana kodda zaten var: todayTR(), kDaily()
+  const MAX_DAILY_CHANCE_BOX = 3;
+  const dayKey = kDaily(guildId, userId, todayTR());
+  const used = dailyChanceBoxUses.get(dayKey) || 0;
+  if (used >= MAX_DAILY_CHANCE_BOX) {
+    return message.reply(`⛔ Bugün **${MAX_DAILY_CHANCE_BOX}** kez kullandın babuş. Yarın tekrar dene!`);
+  }
+
+  // Ücret ve bakiye
   const cost = 5;
-  const balance = getPoints(guildId, userId); // tek kasa
+  const balance = getPoints(guildId, userId);
+  if (balance < cost) {
+    return message.reply('Coinin yetmiyor babuş, **5 coin** lazım.');
+  }
 
-  if (balance < cost)
-    return message.reply('Coinin yetmiyor babuş, 5 coin lazım.');
-
-  // Coin düş
+  // Giriş ücreti (kaybedince ek ceza yok)
   setPoints(guildId, userId, balance - cost);
 
-  // Şans hesapla
+  // 🎲 Olasılıklar: %40 boş | %35 küçük | %20 orta | %4.5 büyük | %0.5 jackpot
   const roll = Math.random() * 100;
   let reward = 0;
   let resultMsg = '';
 
-  if (roll < 25) {
+  if (roll < 40) {
+    // %40 boş
     resultMsg = '😔 Kutudan boş çıktı, şansına küs babuş.';
-  } else if (roll < 55) {
-    reward = 4; // küçük ödül
+  } else if (roll < 75) {
+    // %35 küçük
+    reward = 4;
     resultMsg = `🪙 Küçük ödül! ${reward} coin kazandın.`;
-  } else if (roll < 85) {
-    reward = 10 * 1.4; // orta ödül %40 buff
-    resultMsg = `💰 Orta ödül! ${reward.toFixed(0)} coin kazandın!`;
-  } else if (roll < 99) {
-    reward = 25 * 1.4; // büyük ödül %40 buff
-    resultMsg = `💎 Büyük ödül! ${reward.toFixed(0)} coin senin babuş!`;
+  } else if (roll < 95) {
+    // %20 orta (+%40 buff)
+    reward = Math.round(10 * 1.4);
+    resultMsg = `💰 Orta ödül! ${reward} coin kazandın!`;
+  } else if (roll < 99.5) {
+    // %4.5 büyük (+%40 buff)
+    reward = Math.round(25 * 1.4);
+    resultMsg = `💎 Büyük ödül! ${reward} coin senin babuş!`;
   } else {
+    // %0.5 jackpot
     reward = 150;
     resultMsg = `🔥 JACKPOT! ${reward} coin kazandın!!`;
   }
@@ -1137,25 +1155,12 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
     setPoints(guildId, userId, getPoints(guildId, userId) + reward);
   }
 
-  return message.reply(`🎁 **Şans Kutusu:** ${resultMsg}`);
+  // Hakkı tüket
+  dailyChanceBoxUses.set(dayKey, used + 1);
+
+  return message.reply(`🎁 **Şans Kutusu:** ${resultMsg}\n📆 Bugünkü hakkın: **${used + 1}/${MAX_DAILY_CHANCE_BOX}**`);
 }
 
-  
-  // --------- BİRLEŞİK SIRALAMA & KISA YOL KOMUTLARI ---------
-  if (txt === '!oyunsıralama' || txt === '!oyunsiralama' || txt === '!oyun-sıralama') {
-    if (!gid) return;
-    const top = guildTop(gid, 10);
-    if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
-    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
-    return message.reply(`🏆 **Birleşik Oyun Coin Sıralaması**\n${table}`);
-  }
-  if (txt === '!yazıcoin' || txt === '!yazicoin' || txt === '!yazi-coin') {
-    if (!gid) return;
-    const top = guildTop(gid, 10);
-    if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
-    const table = top.map((r,i)=>`**${i+1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
-    return message.reply(`📊 **Oyun Coin Skor Tablosu**\n${table}`);
-  }
 
   // ----------- YETKİLİ YARDIM -----------
   if (txt === '!yardımyetkili' || txt === '!yardimyetkili' || txt === '!help-owner') {
