@@ -1,6 +1,3 @@
-console.log("📦 Çalışan dosya:", __filename);
-console.log("✅ BUILD TAG:", process.env.MARKET_BUILD || "yok");
-console.log("⏱️ PID:", process.pid);
 
 // ====================== GEREKLİ MODÜLLER ======================
 const express = require('express');
@@ -588,8 +585,6 @@ ${lines}${premiumAciklama}`
   } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
 });
 
-console.log('MARKET v2 yüklendi ✅ (premium sistem aktif)');
-
 
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
@@ -1098,6 +1093,54 @@ client.on('messageCreate', async (message) => {
   }
   // ---------- /ZAR (COIN’Lİ) ----------
 
+  
+// ====================== ŞANS KUTUSU SİSTEMİ ======================
+if (message.content.toLowerCase().startsWith('!şanskutusu')) {
+  const CHANCE_BOX_CHANNEL = '1433137197543854110'; // sadece bu kanalda çalışsın
+  if (message.channel.id !== CHANCE_BOX_CHANNEL) {
+    return message.reply(`🎲 Bu komutu sadece <#${CHANCE_BOX_CHANNEL}> kanalında kullanabilirsin babuş.`);
+  }
+
+  const userId = message.author.id;
+  const guildId = message.guild.id;
+  const cost = 5;
+  const balance = getPoints(guildId, userId); // tek kasa
+
+  if (balance < cost)
+    return message.reply('Coinin yetmiyor babuş, 5 coin lazım.');
+
+  // Coin düş
+  setPoints(guildId, userId, balance - cost);
+
+  // Şans hesapla
+  const roll = Math.random() * 100;
+  let reward = 0;
+  let resultMsg = '';
+
+  if (roll < 25) {
+    resultMsg = '😔 Kutudan boş çıktı, şansına küs babuş.';
+  } else if (roll < 55) {
+    reward = 4; // küçük ödül
+    resultMsg = `🪙 Küçük ödül! ${reward} coin kazandın.`;
+  } else if (roll < 85) {
+    reward = 10 * 1.4; // orta ödül %40 buff
+    resultMsg = `💰 Orta ödül! ${reward.toFixed(0)} coin kazandın!`;
+  } else if (roll < 99) {
+    reward = 25 * 1.4; // büyük ödül %40 buff
+    resultMsg = `💎 Büyük ödül! ${reward.toFixed(0)} coin senin babuş!`;
+  } else {
+    reward = 150;
+    resultMsg = `🔥 JACKPOT! ${reward} coin kazandın!!`;
+  }
+
+  if (reward > 0) {
+    setPoints(guildId, userId, getPoints(guildId, userId) + reward);
+  }
+
+  return message.reply(`🎁 **Şans Kutusu:** ${resultMsg}`);
+}
+
+  
   // --------- BİRLEŞİK SIRALAMA & KISA YOL KOMUTLARI ---------
   if (txt === '!oyunsıralama' || txt === '!oyunsiralama' || txt === '!oyun-sıralama') {
     if (!gid) return;
