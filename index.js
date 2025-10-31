@@ -1108,7 +1108,7 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
   const guildId = message.guild.id;
 
   // İstanbul gününe göre ana kodda zaten var: todayTR(), kDaily()
-  const MAX_DAILY_CHANCE_BOX = 3;
+  const MAX_DAILY_CHANCE_BOX = 4;
   const dayKey = kDaily(guildId, userId, todayTR());
   const used = dailyChanceBoxUses.get(dayKey) || 0;
   if (used >= MAX_DAILY_CHANCE_BOX) {
@@ -1135,7 +1135,7 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
     resultMsg = '😔 Kutudan boş çıktı, şansına küs babuş.';
   } else if (roll < 75) {
     // %35 küçük
-    reward = 4;
+    reward = 8;
     resultMsg = `🪙 Küçük ödül! ${reward} coin kazandın.`;
   } else if (roll < 95) {
     // %20 orta (+%40 buff)
