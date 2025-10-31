@@ -625,6 +625,275 @@ ${whyPremium}
 /* ==================== / MARKET BLOK BİTTİ ==================== */
 
 
+/* =======================================================================
+   >>>>>>>>>>>>  EVLİLİK SİSTEMİ • TEK PARÇA BLOK — REVİZE  <<<<<<<<<<
+   Komutlar:
+   • !yüzük al            → 150 coin (tek kullanımlık yüzük satın al)
+   • !yüzüğüm             → yüzüğün var mı bak
+   • !evlen @kullanıcı    → butonlu evlilik teklifi (Kabul/Ret + GIF)
+   • !eşim                → eşini göster
+   • !boşan eşim          → boşan (50 coin ücret) + 150 coin nafaka eşe ödenir
+   • !evlilikler          → aktif evlilikleri listele (ilk 10)
+
+   EVLİLİLERE ÖZEL OYUN:
+   • !çiftyazıtura yazı|tura  → sadece evliler oynayabilir, gün/kişi limiti: 10
+      Kazan: +5 coin, Kaybet: -3 coin
+======================================================================= */
+
+// === Ayarlar (isteğine göre güncellendi)
+const RING_PRICE         = 150;            // yüzük fiyatı (tek kullanımlık)
+const DIVORCE_FEE        = 50;             // boşanma ücreti (boşanmayı başlatandan düşülür)
+const ALIMONY_AMOUNT     = 150;            // nafaka (başlatandan eşine transfer)
+const PROPOSAL_TIMEOUT   = 30_000;         // teklif geçerlilik süresi (ms)
+const MARRIAGE_CD_MS     = 5 * 60 * 1000;  // teklif cooldown (ms)
+
+const COUPLE_COIN_WIN    = 5;              // çiftyazıtura kazan ödülü
+const COUPLE_COIN_LOSS   = -3;             // çiftyazıtura kayıp cezası
+const COUPLE_DAILY_LIMIT = 10;             // kişi başı günlük oyun limiti
+
+// === GIF'ler (teklif için mutlu; reddedilince hüzünlü)
+const PROPOSAL_HAPPY_GIFS = [
+  'https://media.tenor.com/3zRz0Vt2sHIAAAAM/ring-propose.gif',
+  'https://media.tenor.com/WYQv8r2m5LgAAAAM/marriage-proposal-propose.gif',
+  'https://media.tenor.com/3qY9hQw9gAkAAAAM/marry-me-proposal.gif',
+];
+const PROPOSAL_SAD_GIFS = [
+  'https://media.tenor.com/jjH1h1Q8fQoAAAAM/sad-anime.gif',
+  'https://media.tenor.com/-cBz3s7f7GMAAAAM/sad-cry.gif',
+  'https://media.tenor.com/7BqZyq7n0xAAAAAM/rejected.gif',
+];
+
+// === Kalıcı (process ömrü) haritalar
+const marriages = (globalThis.__MARRIAGES__ ||= new Map());        // gid -> Map(uid -> spouseId)
+const rings     = (globalThis.__RINGS__     ||= new Map());        // gid:uid -> boolean
+const marriedAt = (globalThis.__MARRIED_AT__ ||= new Map());       // gid:pairKey(sorted) -> tarih
+const cooldowns = (globalThis.__MARRY_COOLDOWN__ ||= new Map());   // gid:uid -> ts
+const coupleDaily = (globalThis.__COUPLE_DAILY__ ||= new Map());   // gid:uid:YYYY-MM-DD -> count
+
+// === Kısayol yardımcıları (kodunda zaten var olanları da kullanıyoruz)
+const kPair = (a,b)=>[a,b].sort().join(':');
+const kRing = (gid, uid)=>`${gid}:${uid}`;
+function isMarried(gid, uid) {
+  const g = marriages.get(gid);
+  return !!(g && g.get(uid));
+}
+function spouseOf(gid, uid) {
+  const g = marriages.get(gid);
+  return g ? g.get(uid) || null : null;
+}
+function setMarried(gid, a, b) {
+  let g = marriages.get(gid);
+  if (!g) marriages.set(gid, g = new Map());
+  g.set(a, b); g.set(b, a);
+  marriedAt.set(`${gid}:${kPair(a,b)}`, new Date().toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }));
+}
+function clearMarriage(gid, a, b) {
+  const g = marriages.get(gid);
+  if (!g) return;
+  g.delete(a); g.delete(b);
+  marriedAt.delete(`${gid}:${kPair(a,b)}`);
+}
+function hasRing(gid, uid)      { return !!rings.get(kRing(gid, uid)); }
+function giveRing(gid, uid)     { rings.set(kRing(gid, uid), true); }
+function consumeRing(gid, uid)  { rings.delete(kRing(gid, uid)); }
+
+// Günlük sayaç (evlilere özel yazı/tura)
+function coupleKeyDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
+
+// === Event
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author.bot) return;
+    const gid = message.guild?.id;
+    if (!gid) return;
+    const uid = message.author.id;
+    const txt = (message.content || '').toLocaleLowerCase('tr').trim();
+
+    // ---- YÜZÜK AL (tek kullanımlık)
+    if (txt === '!yüzük al' || txt === '!yuzuk al' || txt === '!yüzükal' || txt === '!yuzukal') {
+      if (isMarried(gid, uid))   return message.reply('Zaten evlisin babuş, yüzüğe gerek kalmadı 😅');
+      if (hasRing(gid, uid))     return message.reply('Zaten bir yüzüğün var 💍 Teklif etmeyi dene: `!evlen @kişi`');
+
+      const bal = getPoints(gid, uid);
+      if (bal < RING_PRICE) {
+        return message.reply(`⛔ Yetersiz coin. Gerekli: **${RING_PRICE}**, Bakiye: **${bal}**`);
+      }
+      setPoints(gid, uid, bal - RING_PRICE);
+      giveRing(gid, uid);
+      return message.reply(`✅ **-${RING_PRICE}** coin ile **tek kullanımlık** bir **yüzük** aldın! \`!evlen @kişi\``);
+    }
+
+    // ---- YÜZÜĞÜM
+    if (txt === '!yüzüğüm' || txt === '!yuzugum' || txt === '!yüzüğum') {
+      if (hasRing(gid, uid))     return message.reply('💍 Bir yüzüğün var. Şansını dene: `!evlen @kişi`');
+      if (isMarried(gid, uid))   return message.reply('💍 Evlisin zaten; yüzüğün kalbinde ✨');
+      return message.reply('💍 Henüz yüzüğün yok. Almak için: `!yüzük al`');
+    }
+
+    // ---- EVLEN (buton + GIF)
+    if (txt.startsWith('!evlen')) {
+      const target = message.mentions.users.first();
+      if (!target)                  return message.reply('Kullanım: `!evlen @kullanıcı`');
+      if (target.bot)               return message.reply('Botlarla evlenemem babuş 😅');
+      if (target.id === uid)        return message.reply('Kendinle evlenemezsin… ama kendini sevmen güzel 😌');
+
+      // cooldown
+      const now = Date.now();
+      const cdKey = `${gid}:${uid}`;
+      const last = cooldowns.get(cdKey) || 0;
+      if (now - last < MARRIAGE_CD_MS) {
+        const left = Math.ceil((MARRIAGE_CD_MS - (now - last))/1000);
+        return message.reply(`⏳ Biraz bekle babuş. Tekrar teklif için **${left} sn** kaldı.`);
+      }
+
+      // ring & durum
+      if (!hasRing(gid, uid))       return message.reply(`💍 Önce yüzük al: \`!yüzük al\` (**${RING_PRICE} coin**)`);
+      if (isMarried(gid, uid))      return message.reply('Zaten evlisin babuş.');
+      if (isMarried(gid, target.id))return message.reply('Hedef kişi zaten evli görünüyor.');
+
+      const happyGif = PROPOSAL_HAPPY_GIFS[Math.floor(Math.random()*PROPOSAL_HAPPY_GIFS.length)];
+      const sadGif   = PROPOSAL_SAD_GIFS[Math.floor(Math.random()*PROPOSAL_SAD_GIFS.length)];
+
+      // butonlu teklif
+      const acceptId = `macc_${uid}_${target.id}_${Date.now()}`;
+      const rejectId = `mrej_${uid}_${target.id}_${Date.now()}`;
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId(acceptId).setLabel('Kabul Et').setStyle(ButtonStyle.Success).setEmoji('💍'),
+        new ButtonBuilder().setCustomId(rejectId).setLabel('Reddet').setStyle(ButtonStyle.Danger).setEmoji('❌'),
+      );
+      const m = await message.channel.send({
+        content: `${target}, **${message.author.tag}** sana **evlilik teklifi** ediyor! 💞`,
+        files: [happyGif],
+        components: [row],
+      });
+
+      const collector = m.createMessageComponentCollector({
+        time: PROPOSAL_TIMEOUT,
+        filter: (i)=> (i.customId===acceptId || i.customId===rejectId) && i.user.id === target.id,
+        componentType: ComponentType.Button,
+      });
+
+      let resolved = false;
+
+      collector.on('collect', async (i) => {
+        if (i.customId === rejectId) {
+          resolved = true;
+          cooldowns.set(cdKey, Date.now()); // reddedilince cooldown başlasın
+          await i.update({ content: `💔 ${target} teklifi **reddetti**.`, files: [sadGif], components: [] });
+        } else if (i.customId === acceptId) {
+          // son saniye kontrolleri
+          if (!hasRing(gid, uid)) {
+            resolved = true;
+            return i.update({ content: '⛔ Teklif geçersiz: yüzüğün yok oldu gibi…', components: [] });
+          }
+          if (isMarried(gid, uid) || isMarried(gid, target.id)) {
+            resolved = true;
+            return i.update({ content: '⛔ Teklif geçersiz: taraflardan biri artık evli görünüyor.', components: [] });
+          }
+          setMarried(gid, uid, target.id);
+          consumeRing(gid, uid);
+          cooldowns.set(cdKey, Date.now());
+          resolved = true;
+          await i.update({ content: `💍 **${message.author}** ve **${target}** artık **EVLİ!** 🎉`, components: [] });
+        }
+      });
+
+      collector.on('end', async () => {
+        if (!resolved) {
+          cooldowns.set(cdKey, Date.now());
+          await m.edit({ content: '⏰ Süre doldu, teklif **geçersiz** oldu.', components: [] }).catch(()=>{});
+        }
+      });
+
+      return;
+    }
+
+    // ---- EŞİM
+    if (txt === '!eşim' || txt === '!esim') {
+      if (!isMarried(gid, uid)) return message.reply('Bekârsın babuş. Belki bugün değişir? `!evlen @kişi`');
+      const sp = spouseOf(gid, uid);
+      const since = marriedAt.get(`${gid}:${kPair(uid, sp)}`) || 'bilinmiyor';
+      return message.reply(`💞 Eşin: <@${sp}> \n📅 Evlilik tarihi: **${since}**`);
+    }
+
+    // ---- BOŞAN (50 coin + 150 nafaka)
+    if (txt === '!boşan eşim' || txt === '!bosan esim' || txt === '!boşan eşim' || txt === '!bosan eşim') {
+      if (!isMarried(gid, uid)) return message.reply('Zaten bekârsın babuş.');
+      const sp = spouseOf(gid, uid);
+
+      // yeterli bakiye kontrolü (ücret + nafaka)
+      const bal = getPoints(gid, uid);
+      const totalCost = DIVORCE_FEE + ALIMONY_AMOUNT;
+      if (bal < totalCost) {
+        return message.reply(`⛔ Yetersiz coin. Boşanma için **${DIVORCE_FEE}** ücret + **${ALIMONY_AMOUNT}** nafaka gerekir (toplam **${totalCost}**). Bakiye: **${bal}**`);
+      }
+
+      // kesintiler & transfer
+      setPoints(gid, uid, bal - DIVORCE_FEE);                       // ücreti kes
+      setPoints(gid, uid, getPoints(gid, uid) - ALIMONY_AMOUNT);    // nafakayı düş
+      setPoints(gid, sp, getPoints(gid, sp) + ALIMONY_AMOUNT);      // eşe nafaka ver
+
+      clearMarriage(gid, uid, sp);
+      return message.reply(`📄 **Boşanma tamam.** **-${DIVORCE_FEE}** coin ücret kesildi ve <@${sp}> kullanıcısına **${ALIMONY_AMOUNT}** coin **nafaka** ödendi. Yolunuz açık olsun 💔`);
+    }
+
+    // ---- EVLİLİKLER
+    if (txt === '!evlilikler') {
+      const g = marriages.get(gid);
+      if (!g || g.size === 0) return message.reply('Bu sunucuda aktif evlilik yok gibi görünüyor.');
+      const seen = new Set();
+      const couples = [];
+      for (const [a, b] of g.entries()) {
+        const key = kPair(a, b);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        couples.push({ a, b, since: marriedAt.get(`${gid}:${key}`) || '' });
+      }
+      const list = couples.slice(0, 10).map((c, i)=>
+        `**${i+1}.** <@${c.a}> ❤️ <@${c.b}>  ${c.since ? `(since: ${c.since})` : ''}`
+      ).join('\n');
+      return message.reply(`👩‍❤️‍👨 **Evlilik Listesi**\n${list}`);
+    }
+
+    // ---- EVLİLİLERE ÖZEL YAZI/TURA
+    if (txt.startsWith('!çiftyazıtura') || txt.startsWith('!ciftyazitura') || txt.startsWith('!çiftyazi-tura') || txt.startsWith('!ciftyazi-tura')) {
+      const parts = txt.split(/\s+/);
+      const secim = (parts[1] || '').replace('yazi','yazı'); // yazi->yazı toleransı
+      if (!['yazı', 'tura'].includes(secim)) {
+        return message.reply('Kullanım: `!çiftyazıtura yazı` veya `!çiftyazıtura tura`');
+      }
+      if (!isMarried(gid, uid)) {
+        return message.reply('⛔ Bu oyun **sadece evliler** için. `!evlen @kişi` ile başlayabilirsin.');
+      }
+
+      const day = todayTR();
+      const dKey = coupleKeyDaily(gid, uid, day);
+      const used = coupleDaily.get(dKey) || 0;
+      if (used >= COUPLE_DAILY_LIMIT) {
+        return message.reply(`⛔ Günlük oyun limitine ulaştın (**${COUPLE_DAILY_LIMIT}**). Yarın yine gel babuş!`);
+      }
+
+      const sonuc = Math.random() < 0.5 ? 'yazı' : 'tura';
+      const kazandi = (secim === sonuc);
+      const delta = kazandi ? COUPLE_COIN_WIN : COUPLE_COIN_LOSS;
+
+      coupleDaily.set(dKey, used + 1);
+      const total = addPoints(gid, uid, delta);
+
+      return message.reply(
+        `🪙 Çift Yazı/Tura: **${sonuc.toUpperCase()}** ` +
+        (kazandi ? `→ Kazandın! **+${COUPLE_COIN_WIN}** coin` : `→ Kaybettin… **${COUPLE_COIN_LOSS}** coin`) +
+        `\n📦 Toplam oyun coin’in: **${total}**  • Günlük: **${used+1}/${COUPLE_DAILY_LIMIT}**`
+      );
+    }
+
+  } catch (err) {
+    console.error('[EVLİLİK BLOK HATASI]', err);
+  }
+});
+/* ==================== / EVLİLİK BLOK BİTTİ ==================== */
+
+
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
 const TYPING_CHANNEL_ID = '1433137197543854110'; // sadece bu kanalda
