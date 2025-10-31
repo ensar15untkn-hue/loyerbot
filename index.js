@@ -1116,10 +1116,10 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
   }
 
   // Ücret ve bakiye
-  const cost = 5;
+  const cost = 4;
   const balance = getPoints(guildId, userId);
   if (balance < cost) {
-    return message.reply('Coinin yetmiyor babuş, **5 coin** lazım.');
+    return message.reply('Coinin yetmiyor babuş, **4 coin** lazım.');
   }
 
   // Giriş ücreti (kaybedince ek ceza yok)
