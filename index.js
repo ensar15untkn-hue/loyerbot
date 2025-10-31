@@ -532,6 +532,17 @@ ${lines}${premiumAciklama}`
 
       if (sub === 'iade') {
         if (!hasRole) return void message.reply('ℹ️ Bu role sahip değilsin, iade edilemez.');
+
+        
+          // ⛔ Aynı anda yalnızca 1 market rolü kuralı
+  const ownedMarketRoleId = MARKET_ROLE_IDS.find(rid => member.roles.cache.has(rid));
+  if (ownedMarketRoleId && ownedMarketRoleId !== roleId) {
+    return void message.reply(
+      `⛔ Zaten bir market rolüne sahipsin: <@&${ownedMarketRoleId}>.\n` +
+      `İkinciyi alamazsın. Önce iade et: \`!market iade ${ownedMarketRoleId}\``
+    );
+  }
+
         const refund = getRefundById(roleId);
         try {
           await member.roles.remove(roleId, 'Market iade');
