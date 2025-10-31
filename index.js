@@ -585,6 +585,8 @@ ${lines}${premiumAciklama}`
   } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
 });
 
+console.log('MARKET v2 yüklendi ✅ (premium sistem aktif)');
+
 
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
