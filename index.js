@@ -1032,8 +1032,8 @@ client.on('messageCreate', async (message) => {
       return message.reply('⛔ Bugünün **Yazı bonusunu** zaten aldın. Yarın tekrar gel babuş!');
     }
     dailyClaimYaziBonus.set(k, true);
-    const total = addPoints(gid, uid, 15);
-    return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun coin’in: **${total}**`);
+    const total = addPoints(gid, uid, 25);
+    return message.reply(`✅ **+25** Yazı bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
   if (txt === '!zar bonus' || txt === '!zarbonus' || txt === '!zar-bonus') {
     if (!gid) return;
@@ -1043,8 +1043,8 @@ client.on('messageCreate', async (message) => {
       return message.reply('⛔ Bugünün **Zar bonusunu** zaten aldın. Yarın yine şansını dene!');
     }
     dailyClaimZarBonus.set(k, true);
-    const total = addPoints(gid, uid, 15);
-    return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
+    const total = addPoints(gid, uid, 25);
+    return message.reply(`✅ **+25** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
 
   // ---------- ZAR (COIN’Lİ) ----------
@@ -1108,7 +1108,7 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
   const guildId = message.guild.id;
 
   // İstanbul gününe göre ana kodda zaten var: todayTR(), kDaily()
-  const MAX_DAILY_CHANCE_BOX = 4;
+  const MAX_DAILY_CHANCE_BOX = 5;
   const dayKey = kDaily(guildId, userId, todayTR());
   const used = dailyChanceBoxUses.get(dayKey) || 0;
   if (used >= MAX_DAILY_CHANCE_BOX) {
@@ -1135,19 +1135,19 @@ if (message.content.toLowerCase().startsWith('!şanskutusu')) {
     resultMsg = '😔 Kutudan boş çıktı, şansına küs babuş.';
   } else if (roll < 75) {
     // %35 küçük
-    reward = 8;
+    reward = 10;
     resultMsg = `🪙 Küçük ödül! ${reward} coin kazandın.`;
   } else if (roll < 95) {
     // %20 orta (+%40 buff)
-    reward = Math.round(10 * 1.4);
+    reward = Math.round(20 * 1.4);
     resultMsg = `💰 Orta ödül! ${reward} coin kazandın!`;
   } else if (roll < 99.5) {
     // %4.5 büyük (+%40 buff)
-    reward = Math.round(25 * 1.4);
+    reward = Math.round(35 * 1.4);
     resultMsg = `💎 Büyük ödül! ${reward} coin senin babuş!`;
   } else {
     // %0.5 jackpot
-    reward = 150;
+    reward = 300;
     resultMsg = `🔥 JACKPOT! ${reward} coin kazandın!!`;
   }
 
