@@ -364,45 +364,33 @@ function guildTop(gid, limit = 10) {
 /* =======================================================================
    >>>>>>>>>>>>  MARKET SİSTEMİ • TEK PARÇA BLOK — ENTEGRASYON  <<<<<<<<<<
 ======================================================================= */
-const ROLE_PRICE = 80;
+const ROLE_PRICE = 80; // Normal market rolü fiyatı
 
-// Satıştaki tüm roller (eski + yeni)
+// Normal market rolleri (sende zaten olan 5 ID)
 const MARKET_ROLE_IDS = [
   '1433390462084841482',
   '1433390212138143917',
   '1433389941555073076',
   '1433389819337375785',
   '1433389663904862331',
-  // ⬇️ İstediğin 3 yeni “pahalı” rol:
+];
+
+// PREMIUM roller (pahalı + özel yetki veren 3 ID)
+const PREMIUM_ROLE_IDS = [
   '1433695194976616558',
   '1433695886327808092',
   '1433915275345920130',
 ];
+const PREMIUM_ROLE_PRICE = 200;       // Premium fiyat
+const PREMIUM_REFUND_RATE = 0.20;     // Premium iade oranı (%20)
 
-// Özel (pahalı) roller ve kuralları
-const PREMIUM_ROLE_IDS = new Set([
-  '1433695194976616558',
-  '1433695886327808092',
-  '1433915275345920130',
-]);
-const PREMIUM_ROLE_PRICE = 200;
-const PREMIUM_REFUND_RATE = 0.20;
-
-function getRolePriceById(roleId) {
-  return PREMIUM_ROLE_IDS.has(roleId) ? PREMIUM_ROLE_PRICE : ROLE_PRICE;
-}
-function getRefundById(roleId) {
-  const price = getRolePriceById(roleId);
-  return PREMIUM_ROLE_IDS.has(roleId)
-    ? Math.floor(price * PREMIUM_REFUND_RATE)
-    : Math.floor(price / 2);
-}
-
+// ——— Yardımcılar ———
 const __MARKET__FALLBACK_OWNERS = (typeof OWNERS !== 'undefined' && Array.isArray(OWNERS)) ? OWNERS : [];
 const __MARKET__LABEL = (typeof OWNER_LABEL !== 'undefined' && OWNER_LABEL) ? OWNER_LABEL : {};
 const __MARKET__POINTS_MAP = (typeof gamePoints !== 'undefined' && gamePoints instanceof Map)
   ? gamePoints
   : (globalThis.__MARKET_POINTS__ ||= new Map());
+
 function __mkKey(gid, uid) { return `${gid}:${uid}`; }
 function getPoints(gid, uid) { return __MARKET__POINTS_MAP.get(__mkKey(gid, uid)) || 0; }
 function setPoints(gid, uid, val) {
@@ -415,44 +403,73 @@ function parseAmount(lastToken) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-// ------------- Market ve diğer mesaj tabanlı komutlar -------------
+function isPremium(roleId) { return PREMIUM_ROLE_IDS.includes(roleId); }
+function getRolePriceById(roleId) { return isPremium(roleId) ? PREMIUM_ROLE_PRICE : ROLE_PRICE; }
+function getRefundById(roleId) {
+  const price = getRolePriceById(roleId);
+  return isPremium(roleId) ? Math.floor(price * PREMIUM_REFUND_RATE) : Math.floor(price / 2);
+}
+
+// Üyenin halihazırda sahip olduğu “market rollerinden” biri var mı? (normal ya da premium)
+function getOwnedMarketRoleId(member) {
+  const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
+  return ALL.find(rid => member.roles.cache.has(rid)) || null;
+}
+
+// ------------- Market & Coin Komutları -------------
 client.on('messageCreate', async (message) => {
   try {
     if (message.author.bot) return;
     const gid = message.guild?.id;
     const uid = message.author.id;
-    const cid = message.channel?.id;
     const txt = (message.content || '').toLocaleLowerCase('tr').trim();
 
     // --- !yardimmarket
     if (txt === '!yardimmarket') {
-      if (!MARKET_ROLE_IDS.length) {
+      const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
+      if (!ALL.length) {
         return void message.reply('🛒 Market şu an boş görünüyor babuş.');
       }
 
-      const lines = MARKET_ROLE_IDS.map((rid, i) => {
-        const fiyat = getRolePriceById(rid);
-        const iade = getRefundById(rid);
-        const etiket = PREMIUM_ROLE_IDS.has(rid) ? ' — ⭐ **Özel**' : '';
-        return `**${i + 1}.** <@&${rid}> — ID: \`${rid}\`${etiket} — **${fiyat} coin** (iade: **${iade}**)`;
-      }).join('\n');
+      const normalRefund = Math.floor(ROLE_PRICE / 2);
+      const normalLines = MARKET_ROLE_IDS.length
+        ? MARKET_ROLE_IDS.map((rid, i) =>
+            `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} coin** (iade: **${normalRefund}**)`
+          ).join('\n')
+        : '_(Normal market boş)_';
 
-      const premiumAciklama =
-        `\n\n**Neden bazıları pahalı?**\n` +
-        `Bu 3 adamdan birinin **çırağı** oluyorsun ve sana **takma ad değiştirme**, **sohbet kanallarına dosya atma** gibi ek yetkiler veriyor. ` +
-        `Bu nedenle **fiyatı 200 coin** ve iade edildiğinde **%20** (**ikinci el**) geri ödeme yapılır.`;
+      const premiumLines = PREMIUM_ROLE_IDS.length
+        ? PREMIUM_ROLE_IDS.map((rid, i) =>
+            `**P${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${PREMIUM_ROLE_PRICE} coin** (iade: **${getRefundById(rid)}**, “ikinci el olmuş”)`
+          ).join('\n')
+        : '_(Premium market boş)_';
+
+      const whyPremium =
+        '🔸 **Neden pahalı?** Bu 3 adamdan birinin **çırağı** oluyorsun; ' +
+        '**takma ad değiştirme** ve **sohbet kanallarına dosya atma** yetkisi veriyor.';
+
+      const singleRule =
+        '🔒 **Kural:** Aynı anda **yalnızca 1** market rolüne sahip olabilirsin (normal veya premium). ' +
+        'Yeni bir rol almak için mevcut rolünü önce iade et.';
 
       return void message.reply(
 `🛒 **Market & Coin Yardımı**
-• **!coin** — Mevcut coin’ini gösterir.
-• **!rollerimarket** — Market rollerini listeler ve fiyat/iade bilgilerini gösterir.
-• **!market al <rolId>** — Rol satın alır (rolüne göre fiyat).
-• **!market iade <rolId>** — Rol iadesi (rolüne göre iade tutarı).
-• **!coin gonder @kisi <miktar>** — Üyeye coin gönder.
-• **(Owner)** **!coin-ver @kisi <miktar>** — Sınırsız coin verme.
+${singleRule}
 
-__Market Rolleri__
-${lines}${premiumAciklama}`
+__Normal Market Rolleri__
+${normalLines}
+
+__Premium Rolleri__
+${premiumLines}
+${whyPremium}
+
+**Komutlar**
+• **!coin** — Mevcut coin’in
+• **!rollerimarket** — Tüm roller ve fiyatlar
+• **!market al <rolId>** — Rol satın alır
+• **!market iade <rolId>** — Rol iadesi (normal %50, premium %20 + “ikinci el olmuş”)
+• **!coin gonder @kisi <miktar>** — Coin transferi
+• (Owner) **!coin-ver @kisi <miktar>** — Sınırsız coin verme`
       );
     }
 
@@ -466,23 +483,24 @@ ${lines}${premiumAciklama}`
     // --- !rollerimarket
     if (txt === '!rollerimarket' || txt === '!market roller' || txt === '!market-roller') {
       if (!message.guild) return;
-      if (!MARKET_ROLE_IDS.length) return void message.reply('🛒 Market şu an boş görünüyor babuş.');
-      const lines = MARKET_ROLE_IDS.map((rid, i) => {
-        const fiyat = getRolePriceById(rid);
-        const iade = getRefundById(rid);
-        const etiket = PREMIUM_ROLE_IDS.has(rid) ? ' — ⭐ **Özel**' : '';
-        return `**${i + 1}.** <@&${rid}> — ID: \`${rid}\`${etiket} — **${fiyat} coin** (iade: **${iade}**)`;
-      }).join('\n');
 
-      const premiumAciklama =
-        `\n\n**Neden bazıları pahalı?**\n` +
-        `Bu 3 adamdan birinin **çırağı** oluyorsun ve sana **takma ad değiştirme**, **sohbet kanallarına dosya atma** gibi ek yetkiler veriyor. ` +
-        `Bu nedenle **fiyatı 200 coin** ve iade edildiğinde **%20** (**ikinci el**) geri ödeme yapılır.`;
+      const normalRefund = Math.floor(ROLE_PRICE / 2);
+      const normalLines = MARKET_ROLE_IDS.length
+        ? MARKET_ROLE_IDS.map((rid, i) =>
+            `**${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${ROLE_PRICE} coin** (iade: **${normalRefund}**)`
+          ).join('\n')
+        : '_(Normal market boş)_';
+
+      const premiumLines = PREMIUM_ROLE_IDS.length
+        ? PREMIUM_ROLE_IDS.map((rid, i) =>
+            `**P${i + 1}.** <@&${rid}> — ID: \`${rid}\` — **${PREMIUM_ROLE_PRICE} coin** (iade: **${getRefundById(rid)}**, “ikinci el olmuş”)`
+          ).join('\n')
+        : '_(Premium market boş)_';
 
       return void message.reply(
-        `🧩 **Market Rolleri**\n${lines}\n\nSatın almak: \`!market al <rolId>\`\n` +
-        `İade: \`!market iade <rolId>\`\n` +
-        premiumAciklama
+        `🧩 **Market Rolleri**\n${normalLines}\n\n${premiumLines}\n\n` +
+        `Satın almak: \`!market al <rolId>\`\n` +
+        `İade: \`!market iade <rolId>\``
       );
     }
 
@@ -492,17 +510,21 @@ ${lines}${premiumAciklama}`
       const parts = message.content.trim().split(/\s+/);
       const sub = (parts[1] || '').toLocaleLowerCase('tr');
       const roleId = (parts[2] || '').replace(/[^\d]/g, '');
+
+      const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
+
       if (!['al', 'iade'].includes(sub)) {
         return void message.reply('Kullanım:\n• `!market al <rolId>`\n• `!market iade <rolId>`\n• `!rollerimarket`');
       }
       if (!roleId) return void message.reply('⛔ Rol ID girmen lazım. `!rollerimarket` ile bakabilirsin.');
-      if (!MARKET_ROLE_IDS.includes(roleId)) {
+      if (!ALL.includes(roleId)) {
         return void message.reply('⛔ Bu rol markette değil. `!rollerimarket` ile geçerli rolleri gör.');
       }
+
       const role = message.guild.roles.cache.get(roleId);
       if (!role) return void message.reply('⛔ Bu rol sunucuda bulunamadı (silinmiş olabilir).');
 
-      const me = message.guild?.members?.me;
+      const me = message.guild.members.me;
       if (!me?.permissions.has?.(PermissionFlagsBits.ManageRoles)) {
         return void message.reply('⛔ Gerekli yetki yok: **Rolleri Yönet**');
       }
@@ -515,6 +537,16 @@ ${lines}${premiumAciklama}`
 
       if (sub === 'al') {
         if (hasRole) return void message.reply('ℹ️ Bu role zaten sahipsin.');
+
+        // 🔒 Aynı anda yalnızca 1 market rolü (normal veya premium)
+        const ownedMarketRoleId = getOwnedMarketRoleId(member);
+        if (ownedMarketRoleId) {
+          return void message.reply(
+            `⛔ Zaten bir market rolüne sahipsin: <@&${ownedMarketRoleId}>.\n` +
+            `İkinciyi alamazsın. Önce iade et: \`!market iade ${ownedMarketRoleId}\``
+          );
+        }
+
         const price = getRolePriceById(roleId);
         const bal = getPoints(gid, uid);
         if (bal < price) {
@@ -523,7 +555,9 @@ ${lines}${premiumAciklama}`
         try {
           await member.roles.add(roleId, 'Market satın alma');
           setPoints(gid, uid, bal - price);
-          return void message.reply(`✅ <@&${roleId}> rolünü aldın! **-${price}** coin. Yeni bakiye: **${getPoints(gid, uid)}**`);
+          return void message.reply(
+            `✅ <@&${roleId}> rolünü aldın! **-${price}** coin. Yeni bakiye: **${getPoints(gid, uid)}**`
+          );
         } catch (e) {
           console.error('market al hata:', e);
           return void message.reply('⛔ Rol verilirken hata oluştu (izin/hiyerarşi).');
@@ -533,26 +567,16 @@ ${lines}${premiumAciklama}`
       if (sub === 'iade') {
         if (!hasRole) return void message.reply('ℹ️ Bu role sahip değilsin, iade edilemez.');
 
-        
-          // ⛔ Aynı anda yalnızca 1 market rolü kuralı
-  const ownedMarketRoleId = MARKET_ROLE_IDS.find(rid => member.roles.cache.has(rid));
-  if (ownedMarketRoleId && ownedMarketRoleId !== roleId) {
-    return void message.reply(
-      `⛔ Zaten bir market rolüne sahipsin: <@&${ownedMarketRoleId}>.\n` +
-      `İkinciyi alamazsın. Önce iade et: \`!market iade ${ownedMarketRoleId}\``
-    );
-  }
-
         const refund = getRefundById(roleId);
         try {
           await member.roles.remove(roleId, 'Market iade');
           setPoints(gid, uid, getPoints(gid, uid) + refund);
 
-          const ikinciElNotu = PREMIUM_ROLE_IDS.has(roleId)
-            ? ' _(bu mallar ikinci el olmuş)_'
-            : '';
-
-          return void message.reply(`↩️ <@&${roleId}> iade edildi.${ikinciElNotu} **+${refund}** coin geri yüklendi. Yeni bakiye: **${getPoints(gid, uid)}**`);
+          const premiumNote = isPremium(roleId) ? ' _(bu mallar **ikinci el olmuş**)_ ' : ' ';
+          return void message.reply(
+            `↩️ <@&${roleId}> iade edildi.${premiumNote}**+${refund}** coin geri yüklendi. ` +
+            `Yeni bakiye: **${getPoints(gid, uid)}**`
+          );
         } catch (e) {
           console.error('market iade hata:', e);
           return void message.reply('⛔ Rol geri alınırken hata oluştu (izin/hiyerarşi).');
@@ -590,11 +614,15 @@ ${lines}${premiumAciklama}`
       if (!target || isNaN(amt) || amt <= 0) return void message.reply('Kullanım: `!coin-ver @hedef <pozitif_miktar>`');
       setPoints(gid, target.id, getPoints(gid, target.id) + amt);
       const label = __MARKET__LABEL[uid] || 'Owner';
-      return void message.reply(`👑 ${label} — <@${target.id}> kullanıcısına **${amt}** coin verildi. Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`);
+      return void message.reply(
+        `👑 ${label} — <@${target.id}> kullanıcısına **${amt}** coin verildi. ` +
+        `Alıcının yeni bakiyesi: **${getPoints(gid, target.id)}**`
+      );
     }
 
   } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
 });
+/* ==================== / MARKET BLOK BİTTİ ==================== */
 
 
 // ====================== YAZI OYUNU ======================
