@@ -1044,6 +1044,7 @@ client.on('messageCreate', async (message) => {
 • \\!coin — Coin bakiyen.
 • \\!coin gonder @kisi <miktar> — Coin transferi.
 • (Owner) \\!coin-ver @kisi <miktar> — Sınırsız coin verme.
+• **Evlilik**: **Yüzük** (tek kullanımlık) — **150 coin** → `!yüzük al`
 
 ℹ️ **Notlar**
 • Zar + Yazı coin’leri **tek kasada** toplanır; market ile birlikte kullanılır.
