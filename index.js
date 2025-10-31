@@ -1,3 +1,6 @@
+console.log("📦 Çalışan dosya:", __filename);
+console.log("✅ BUILD TAG:", process.env.MARKET_BUILD || "yok");
+console.log("⏱️ PID:", process.pid);
 
 // ====================== GEREKLİ MODÜLLER ======================
 const express = require('express');
