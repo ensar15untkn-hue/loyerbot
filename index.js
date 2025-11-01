@@ -378,7 +378,7 @@ const PREMIUM_REFUND_RATE = 0.20;       // Premium iade oranı
 
 // ——— Market "Eşyalar / Güçlendirmeler" (sadece gösterim + komut bilgisi) ———
 const ITEM_SHANS_KUTUSU_PRICE = 8;      // !şanskutusu
-const RING_PRICE_VIEW = (typeof RING_PRICE !== 'undefined' ? RING_PRICE : 150); // !yüzük al
+const RING_PRICE_VIEW = 150; // evlilik yüzüğü sabit fiyatı
 const XPBOOST_PRICE = 200;              // !xpboost (kalıcı 1.5x görev kazancı)
 
 // ——— Normal & Premium rol ID’leri (sende var olanlar) ———
