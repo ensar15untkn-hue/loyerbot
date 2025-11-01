@@ -2134,85 +2134,110 @@ async function handleOwoTest(message) {
   );
 }
 
-// ====================== PERSISTENCE + HERSEYI SIL (OWNER) ======================
+// ====================== PERSISTENCE + AUTO-SAVE + OWNER WIPE ======================
 const fs = require('fs/promises');
 const path = require('path');
 
-const STORE_PATH = path.resolve('./bot-store.json'); // repo kökünde
+// ---- 0) Gerekli global map'ler (eksikse oluştur) ----
+const ensureMap = (name) => { globalThis[name] ||= new Map(); };
+ensureMap('gamePoints');
+
+ensureMap('__MARRIAGES__');
+ensureMap('__RINGS__');
+ensureMap('__MARRIED_AT__');
+ensureMap('__COUPLE_DAILY__');
+
+ensureMap('dailyTypingWins');
+ensureMap('dailyClaimYaziBonus');
+ensureMap('dailyClaimZarBonus');
+
+ensureMap('__DAILY_MSG__');
+ensureMap('__DAILY_FLAGS__');
+ensureMap('__GOREV_CD__');
+
+ensureMap('__VOICE_DAILY__');
+ensureMap('__VOICE_CD__');
+
+ensureMap('messageCount');
+ensureMap('totals');
+ensureMap('joinTimes');
+
+// ---- 1) OWNER listesi yoksa ek bir güvenlik ağı (senin dosyanda varsa bunu yok sayar) ----
+if (typeof OWNERS === 'undefined') {
+  globalThis.OWNERS = ['923263340325781515', '1122942626702827621'];
+}
+
+// ---- 2) Disk yolu + durum bayrağı ----
+const STORE_PATH = path.resolve('./bot-store.json');
 let DIRTY = false;
 let SNAP = 0;
-
 function markDirty() { DIRTY = true; }
 
-// --- Kayıt edeceğimiz tüm state'i JSON'a çevir ---
+// ---- 3) Serialize/Deserialize ----
+const asEntries = (m) => (m && m instanceof Map) ? [...m.entries()] : [];
+const toMap = (arr) => new Map(Array.isArray(arr) ? arr : []);
+
 function serializeStore() {
-  const asEntries = (m) => (m && m instanceof Map) ? [...m.entries()] : [];
   return JSON.stringify({
-    // Ekonomi / oyun
     gamePoints: asEntries(globalThis.gamePoints),
 
-    // Evlilik sistemi
-    marriages: asEntries(globalThis.__MARRIAGES__),
-    rings:     asEntries(globalThis.__RINGS__),
-    marriedAt: asEntries(globalThis.__MARRIED_AT__),
-    coupleDaily: asEntries(globalThis.__COUPLE_DAILY__),
+    marriages:       asEntries(globalThis.__MARRIAGES__),
+    rings:           asEntries(globalThis.__RINGS__),
+    marriedAt:       asEntries(globalThis.__MARRIED_AT__),
+    coupleDaily:     asEntries(globalThis.__COUPLE_DAILY__),
 
-    // Günlük bonus/sayaçlar (varsa)
-    dailyTypingWins: asEntries(globalThis.dailyTypingWins),
+    dailyTypingWins:     asEntries(globalThis.dailyTypingWins),
     dailyClaimYaziBonus: asEntries(globalThis.dailyClaimYaziBonus),
     dailyClaimZarBonus:  asEntries(globalThis.dailyClaimZarBonus),
 
-    // Günlük görev sistemi (varsa)
     __DAILY_MSG__:   asEntries(globalThis.__DAILY_MSG__),
     __DAILY_FLAGS__: asEntries(globalThis.__DAILY_FLAGS__),
     __GOREV_CD__:    asEntries(globalThis.__GOREV_CD__),
 
-    // Ses görevi (eklediysen)
     __VOICE_DAILY__: asEntries(globalThis.__VOICE_DAILY__),
     __VOICE_CD__:    asEntries(globalThis.__VOICE_CD__),
 
-    // Sohbet/ses liderlik sayacı (istenirse)
     _messageCount: asEntries(globalThis.messageCount),
     _totals:       asEntries(globalThis.totals),
     _joinTimes:    asEntries(globalThis.joinTimes),
   });
 }
 
-async function atomicWrite(path, data) {
-  const tmp = path + '.tmp';
+async function atomicWrite(p, data) {
+  const tmp = p + '.tmp';
   await fs.writeFile(tmp, data);
-  await fs.rename(tmp, path);
+  await fs.rename(tmp, p);
 }
 
 async function saveStore(force = false) {
   if (!force && !DIRTY) return;
   DIRTY = false;
-  const payload = serializeStore();
 
+  const payload = serializeStore();
   await atomicWrite(STORE_PATH, payload);
+
+  // 3 döner yedek
   SNAP = (SNAP % 3) + 1;
   await atomicWrite(`${STORE_PATH}.${SNAP}.bak`, payload);
 
   console.log('📝 Store saved.');
 }
 
-// (Opsiyonel ama önerilir) — açılışta varsa yükle
 async function loadStoreIfAny() {
   try {
     const raw = await fs.readFile(STORE_PATH, 'utf8');
     const data = JSON.parse(raw);
 
-    const toMap = (arr) => new Map(Array.isArray(arr) ? arr : []);
     if (data.gamePoints) globalThis.gamePoints = toMap(data.gamePoints);
 
-    if (data.marriages)  globalThis.__MARRIAGES__  = toMap(data.marriages);
-    if (data.rings)      globalThis.__RINGS__      = toMap(data.rings);
-    if (data.marriedAt)  globalThis.__MARRIED_AT__ = toMap(data.marriedAt);
-    if (data.coupleDaily)globalThis.__COUPLE_DAILY__ = toMap(data.coupleDaily);
+    if (data.marriages)       globalThis.__MARRIAGES__      = toMap(data.marriages);
+    if (data.rings)           globalThis.__RINGS__          = toMap(data.rings);
+    if (data.marriedAt)       globalThis.__MARRIED_AT__     = toMap(data.marriedAt);
+    if (data.coupleDaily)     globalThis.__COUPLE_DAILY__   = toMap(data.coupleDaily);
 
-    if (data.dailyTypingWins)      globalThis.dailyTypingWins      = toMap(data.dailyTypingWins);
-    if (data.dailyClaimYaziBonus)  globalThis.dailyClaimYaziBonus  = toMap(data.dailyClaimYaziBonus);
-    if (data.dailyClaimZarBonus)   globalThis.dailyClaimZarBonus   = toMap(data.dailyClaimZarBonus);
+    if (data.dailyTypingWins)     globalThis.dailyTypingWins     = toMap(data.dailyTypingWins);
+    if (data.dailyClaimYaziBonus) globalThis.dailyClaimYaziBonus = toMap(data.dailyClaimYaziBonus);
+    if (data.dailyClaimZarBonus)  globalThis.dailyClaimZarBonus  = toMap(data.dailyClaimZarBonus);
 
     if (data.__DAILY_MSG__)   globalThis.__DAILY_MSG__   = toMap(data.__DAILY_MSG__);
     if (data.__DAILY_FLAGS__) globalThis.__DAILY_FLAGS__ = toMap(data.__DAILY_FLAGS__);
@@ -2226,47 +2251,67 @@ async function loadStoreIfAny() {
     if (data._joinTimes)    globalThis.joinTimes    = toMap(data._joinTimes);
 
     console.log('✅ Store loaded from disk.');
-  } catch (e) {
+  } catch {
     console.log('ℹ️ Store not found, starting fresh.');
   }
 }
-// açılışta yükle (await edilemeyecek yerdeysek fire-and-forget):
 loadStoreIfAny();
 
-// ⏱️ 1 saatte bir otomatik kayıt
+// ---- 4) addPoints kancası (coin her değiştiğinde save işaretle) ----
+if (typeof addPoints === 'function') {
+  const __origAddPoints = addPoints;
+  globalThis.addPoints = function (gid, uid, amt) {
+    const r = __origAddPoints(gid, uid, amt);
+    try { markDirty(); } catch {}
+    return r;
+  };
+} else {
+  // Yedek addPoints (projen yoksa diye)
+  globalThis.addPoints = function (gid, uid, amt) {
+    const k = `${gid}:${uid}`;
+    const cur = globalThis.gamePoints.get(k) || 0;
+    const next = Math.max(0, cur + (Number(amt) || 0));
+    globalThis.gamePoints.set(k, next);
+    markDirty();
+    return next;
+  };
+}
+
+// ---- 5) Rol değişimi olursa (market al/iade) kirlet ----
+client.on('guildMemberUpdate', (oldM, newM) => {
+  try {
+    // Basit fark kontrolü
+    if (oldM.roles.cache.size !== newM.roles.cache.size) markDirty();
+  } catch {}
+});
+
+// ---- 6) 1 saatte bir otomatik kayıt + kapanışta son kayıt ----
 const SAVE_INTERVAL_MS = 60 * 60 * 1000; // 1 saat
 setInterval(() => { saveStore().catch(() => {}); }, SAVE_INTERVAL_MS);
 
-// güvenli kapanışta son bir kayıt
 for (const sig of ['SIGINT', 'SIGTERM']) {
   process.on(sig, async () => {
     try { await saveStore(true); } finally { process.exit(0); }
   });
 }
 
-// ========== OWNER KOMUTU: !herseyisil — tüm veriyi sıfırlar ==========
+// ---- 7) OWNER komutu: !herseyisil (tüm veriyi temizle & anında kaydet) ----
 client.on('messageCreate', async (message) => {
   try {
     if (message.author.bot) return;
     const uid = message.author.id;
     const txt = (message.content || '').toLocaleLowerCase('tr').trim();
 
-    // varyasyonlar: !herseyisil | !herşeyisil | !her şeyi sil
     const isWipe =
-      txt === '!herseyisil' ||
-      txt === '!herşeyisil' ||
-      txt === '!her şeyi sil' ||
-      txt === '!herseyı sil' ||
-      txt === '!herşeyi sil';
+      txt === '!herseyisil' || txt === '!herşeyisil' ||
+      txt === '!her şeyi sil' || txt === '!herseyı sil' || txt === '!herşeyi sil';
 
     if (!isWipe) return;
 
-    // sadece owner
     if (!Array.isArray(OWNERS) || !OWNERS.includes(uid)) {
       return void message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
     }
 
-    // Tüm bilinen state’leri temizle
     const safeClear = (mName) => {
       const m = globalThis[mName];
       if (m && m instanceof Map) m.clear();
@@ -2294,7 +2339,6 @@ client.on('messageCreate', async (message) => {
     safeClear('totals');
     safeClear('joinTimes');
 
-    // kayıt et
     DIRTY = true;
     await saveStore(true);
 
@@ -2304,7 +2348,7 @@ client.on('messageCreate', async (message) => {
     return void message.reply('⛔ Sıfırlama sırasında bir hata oluştu.');
   }
 });
-// ==================== /PERSISTENCE + HERSEYI SIL ====================
+// ==================== /PERSISTENCE + AUTO-SAVE + OWNER WIPE ======================
 
 
 async function startBot() {
