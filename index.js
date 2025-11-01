@@ -424,7 +424,7 @@ client.on('messageCreate', async (message) => {
     const uid = message.author.id;
     const txt = (message.content || '').toLocaleLowerCase('tr').trim();
 
-    // --- !yardimmarket
+    // --- !market
     if (txt === '!yardimmarket') {
       const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
       if (!ALL.length) {
@@ -465,7 +465,7 @@ ${whyPremium}
 
 **Komutlar**
 • **!coin** — Mevcut coin’in
-• **!rollerimarket** — Tüm roller ve fiyatlar
+• **!market** — Tüm roller ve fiyatlar
 • **!market al <rolId>** — Rol satın alır
 • **!market iade <rolId>** — Rol iadesi (normal %30, premium %20 + “ikinci el olmuş”)
 • **!coin gonder @kisi <miktar>** — Coin transferi
@@ -480,7 +480,7 @@ ${whyPremium}
       return void message.reply(`💰 Toplam oyun coin’in: **${bal}**`);
     }
 
-    // --- !rollerimarket
+    // --- !market
     if (txt === '!rollerimarket' || txt === '!market roller' || txt === '!market-roller') {
       if (!message.guild) return;
 
@@ -1307,8 +1307,8 @@ client.on('messageCreate', async (message) => {
 • Diğer kanallarda otomatik uyarı ve (iznin varsa) mesaj silme çalışır.
 
 🛒 **Market**
-• \\!yardimmarket — Market kullanımını ve satılık rolleri gösterir.
-• \\!rollerimarket — Satıştaki rol listesi ve fiyatlar.
+• \\!yardımmarket — Market kullanımını ve satılık rolleri gösterir.
+• \\!market— Satıştaki rol listesi ve fiyatlar.
 • \\!market al <rolId> — Rol satın al (**${ROLE_PRICE} coin**).
 • \\!market iade <rolId> — İade (**${Math.floor(ROLE_PRICE/2)} coin** geri).
 • \\!coin — Coin bakiyen.
