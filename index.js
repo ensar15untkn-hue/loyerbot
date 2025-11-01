@@ -2150,6 +2150,86 @@ client.on('shardReconnecting', (shardId) => console.log(`♻️ Shard ${shardId}
 client.on('shardReady', (shardId) => console.log(`✅ Shard ${shardId} hazır`));
 client.on('resume', () => console.log('🔁 Oturum devam ediyor (resume)'));
 
+// ====================== VERİLERİ OTOMATİK KAYDET & GERİ YÜKLE ======================
+const fs = require("fs");
+const path = require("path");
+
+// Kaydedilecek dosya yolu
+const SAVE_FILE = path.join(process.cwd(), "bot-store.json");
+
+// JSON'a çevirip kaydet
+function saveData() {
+  try {
+    const data = {
+      gamePoints: Array.from(gamePoints.entries()),
+      marriages: Array.from(marriages.entries()),
+      rings: Array.from(rings.entries()),
+      xpboost: Array.from((globalThis.__XPBOOST_USERS__ || new Set()).values()),
+      dailyMsgCounter: Array.from((globalThis.__DAILY_MSG__ || new Map()).entries()),
+      dailyFlags: Array.from((globalThis.__DAILY_FLAGS__ || new Map()).entries()),
+      gorevCooldown: Array.from((globalThis.__GOREV_CD__ || new Map()).entries()),
+    };
+    fs.writeFileSync(SAVE_FILE, JSON.stringify(data, null, 2));
+    console.log("💾 Veriler kaydedildi.");
+  } catch (err) {
+    console.error("saveData hata:", err);
+  }
+}
+
+// JSON dosyasını okuyup geri yükle
+function loadData() {
+  try {
+    if (!fs.existsSync(SAVE_FILE)) return;
+    const raw = fs.readFileSync(SAVE_FILE, "utf8");
+    const data = JSON.parse(raw);
+
+    if (data.gamePoints) for (const [k, v] of data.gamePoints) gamePoints.set(k, v);
+    if (data.marriages) for (const [k, v] of data.marriages) marriages.set(k, v);
+    if (data.rings) for (const [k, v] of data.rings) rings.set(k, v);
+    if (data.xpboost) globalThis.__XPBOOST_USERS__ = new Set(data.xpboost);
+    if (data.dailyMsgCounter) globalThis.__DAILY_MSG__ = new Map(data.dailyMsgCounter);
+    if (data.dailyFlags) globalThis.__DAILY_FLAGS__ = new Map(data.dailyFlags);
+    if (data.gorevCooldown) globalThis.__GOREV_CD__ = new Map(data.gorevCooldown);
+
+    console.log("✅ Veriler yüklendi.");
+  } catch (err) {
+    console.error("loadData hata:", err);
+  }
+}
+
+// Başlangıçta yükle
+loadData();
+
+// 30 saniyede bir otomatik kayıt
+setInterval(saveData, 30_000);
+
+// Bot kapanırken de kaydet
+process.on("SIGINT", () => { saveData(); process.exit(0); });
+process.on("SIGTERM", () => { saveData(); process.exit(0); });
+
+// Owner: !herşeyi sil komutu (verileri sıfırlamak için)
+client.on("messageCreate", async (msg) => {
+  try {
+    if (msg.author.bot) return;
+    const txt = msg.content.toLowerCase().trim();
+    if (txt === "!herşeyi sil" || txt === "!herseyi sil") {
+      if (!OWNERS.includes(msg.author.id)) return msg.reply("⛔ Bu komutu sadece sahipler kullanabilir.");
+      gamePoints.clear();
+      marriages.clear();
+      rings.clear();
+      globalThis.__XPBOOST_USERS__?.clear?.();
+      globalThis.__DAILY_MSG__?.clear?.();
+      globalThis.__DAILY_FLAGS__?.clear?.();
+      globalThis.__GOREV_CD__?.clear?.();
+      fs.writeFileSync(SAVE_FILE, "{}");
+      return msg.reply("🧨 Tüm veriler temizlendi ve kayıt dosyası sıfırlandı.");
+    }
+  } catch (e) {
+    console.error("!herşeyi sil hata:", e);
+  }
+});
+
+
 async function startBot() {
   try {
     console.log('🔑 Login deneniyor...');
