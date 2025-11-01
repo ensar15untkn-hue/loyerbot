@@ -362,11 +362,26 @@ function guildTop(gid, limit = 10) {
 }
 
 /* =======================================================================
-   >>>>>>>>>>>>  MARKET SİSTEMİ • TEK PARÇA BLOK — ENTEGRASYON  <<<<<<<<<<
+   >>>>>>>>>>>>  MARKET SİSTEMİ • TAM BLOK (YENİDEN YAZILDI)  <<<<<<<<<<
+   - !market                → Tüm marketi göster (roller + eşyalar/güçlendirmeler)
+   - !rollerimarket         → Sadece rol listesi
+   - !market al <rolId>     → Rol satın al
+   - !market iade <rolId>   → Rol iadesi (normal %50, premium %20 = “ikinci el”)
+   - !coin                  → Coin bakiyeni göster
+   - !coin gonder @kisi N   → Coin transferi
+   - !coin-ver @kisi N      → (Owner) sınırsız coin verme
 ======================================================================= */
-const ROLE_PRICE = 180; // Normal market rolü fiyatı
 
-// Normal market rolleri (sende zaten olan 5 ID)
+const ROLE_PRICE = 180;                 // Normal market rolü fiyatı
+const PREMIUM_ROLE_PRICE = 400;         // Premium rol fiyatı
+const PREMIUM_REFUND_RATE = 0.20;       // Premium iade oranı
+
+// ——— Market "Eşyalar / Güçlendirmeler" (sadece gösterim + komut bilgisi) ———
+const ITEM_SHANS_KUTUSU_PRICE = 8;      // !şanskutusu
+const RING_PRICE_VIEW = (typeof RING_PRICE !== 'undefined' ? RING_PRICE : 150); // !yüzük al
+const XPBOOST_PRICE = 200;              // !xpboost (kalıcı 1.5x görev kazancı)
+
+// ——— Normal & Premium rol ID’leri (sende var olanlar) ———
 const MARKET_ROLE_IDS = [
   '1433390462084841482',
   '1433390212138143917',
@@ -374,15 +389,11 @@ const MARKET_ROLE_IDS = [
   '1433389819337375785',
   '1433389663904862331',
 ];
-
-// PREMIUM roller (pahalı + özel yetki veren 3 ID)
 const PREMIUM_ROLE_IDS = [
   '1433695194976616558',
   '1433695886327808092',
   '1433915275345920130',
 ];
-const PREMIUM_ROLE_PRICE = 400;       // Premium fiyat
-const PREMIUM_REFUND_RATE = 0.20;     // Premium iade oranı (%20)
 
 // ——— Yardımcılar ———
 const __MARKET__FALLBACK_OWNERS = (typeof OWNERS !== 'undefined' && Array.isArray(OWNERS)) ? OWNERS : [];
@@ -402,21 +413,19 @@ function parseAmount(lastToken) {
   const n = Math.floor(Number(String(lastToken).replace(/[^\d-]/g, '')));
   return Number.isFinite(n) ? n : NaN;
 }
-
 function isPremium(roleId) { return PREMIUM_ROLE_IDS.includes(roleId); }
 function getRolePriceById(roleId) { return isPremium(roleId) ? PREMIUM_ROLE_PRICE : ROLE_PRICE; }
 function getRefundById(roleId) {
   const price = getRolePriceById(roleId);
   return isPremium(roleId) ? Math.floor(price * PREMIUM_REFUND_RATE) : Math.floor(price / 2);
 }
-
-// Üyenin halihazırda sahip olduğu “market rollerinden” biri var mı? (normal ya da premium)
+// Üye şimdiden market rollerinden birine sahip mi?
 function getOwnedMarketRoleId(member) {
   const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
   return ALL.find(rid => member.roles.cache.has(rid)) || null;
 }
 
-// ------------- Market & Coin Komutları -------------
+// ——— Komutlar ———
 client.on('messageCreate', async (message) => {
   try {
     if (message.author.bot) return;
@@ -424,12 +433,9 @@ client.on('messageCreate', async (message) => {
     const uid = message.author.id;
     const txt = (message.content || '').toLocaleLowerCase('tr').trim();
 
-    // --- !market
-    if (txt === '!yardimmarket') {
-      const ALL = [...MARKET_ROLE_IDS, ...PREMIUM_ROLE_IDS];
-      if (!ALL.length) {
-        return void message.reply('🛒 Market şu an boş görünüyor babuş.');
-      }
+    // ----------------- !market (YENİ: yardimmarket yerine geçti) -----------------
+    if (txt === '!market') {
+      if (!message.guild) return;
 
       const normalRefund = Math.floor(ROLE_PRICE / 2);
       const normalLines = MARKET_ROLE_IDS.length
@@ -444,43 +450,50 @@ client.on('messageCreate', async (message) => {
           ).join('\n')
         : '_(Premium market boş)_';
 
-      const whyPremium =
-        '🔸 **Neden pahalı?** Bu 3 adamdan birinin **çırağı** oluyorsun; ' +
-        '**takma ad değiştirme** ve **sohbet kanallarına dosya atma** yetkisi veriyor.';
+      const itemsBlock = [
+        `🎲 **Şans Kutusu** — **${ITEM_SHANS_KUTUSU_PRICE} coin**  •  Komut: \`!şanskutusu\``,
+        `💍 **Evlilik Yüzüğü** — **${RING_PRICE_VIEW} coin**  •  Komut: \`!yüzük al\`  (teklif: \`!evlen @kişi\`)`,
+        `💎 **XPBoost** (Kalıcı **1.5x** Günlük Görev Kazancı) — **${XPBOOST_PRICE} coin**  •  Komut: \`!xpboost\``,
+      ].join('\n');
+
+      const premiumNote =
+        '🔸 **Premium neden pahalı?** Bu 3 adamdan birinin **çırağı** olursun; ' +
+        '**takma ad değiştirme** ve **sohbet kanallarına dosya atma** gibi ek yetkiler sağlar.';
 
       const singleRule =
-        '🔒 **Kural:** Aynı anda **yalnızca 1** market rolüne sahip olabilirsin (normal veya premium). ' +
+        '🔒 **Kural:** Aynı anda **en fazla 1** market rolüne sahip olabilirsin (normal veya premium). ' +
         'Yeni bir rol almak için mevcut rolünü önce iade et.';
 
       return void message.reply(
-`🛒 **Market & Coin Yardımı**
+`🛒 **MARKET**
 ${singleRule}
 
-__Normal Market Rolleri__
+__Normal Rolleri__
 ${normalLines}
 
 __Premium Rolleri__
 ${premiumLines}
-${whyPremium}
+${premiumNote}
 
-**Komutlar**
-• **!coin** — Mevcut coin’in
-• **!market** — Tüm roller ve fiyatlar
-• **!market al <rolId>** — Rol satın alır
-• **!market iade <rolId>** — Rol iadesi (normal %30, premium %20 + “ikinci el olmuş”)
-• **!coin gonder @kisi <miktar>** — Coin transferi
-• (Owner) **!coin-ver @kisi <miktar>** — Sınırsız coin verme`
+__Eşyalar / Güçlendirmeler__
+${itemsBlock}
+
+**Satın Alma / Kullanım**
+• Rol almak: \`!market al <rolId>\`
+• Rol iade: \`!market iade <rolId>\`
+• Şans Kutusu: \`!şanskutusu\`
+• Yüzük: \`!yüzük al\`
+• XPBoost: \`!xpboost\`
+
+**Diğer**
+• Bakiye: \`!coin\`
+• Coin transfer: \`!coin gonder @kisi <miktar>\`
+• (Owner) Coin verme: \`!coin-ver @kisi <miktar>\`
+`
       );
     }
 
-    // --- !coin
-    if (txt === '!coin') {
-      if (!gid) return;
-      const bal = getPoints(gid, uid);
-      return void message.reply(`💰 Toplam oyun coin’in: **${bal}**`);
-    }
-
-    // --- !market
+    // ----------------- !rollerimarket (yalnızca rol listesi) -----------------
     if (txt === '!rollerimarket' || txt === '!market roller' || txt === '!market-roller') {
       if (!message.guild) return;
 
@@ -504,7 +517,14 @@ ${whyPremium}
       );
     }
 
-    // --- !market al / iade
+    // ----------------- !coin (bakiye) -----------------
+    if (txt === '!coin') {
+      if (!gid) return;
+      const bal = getPoints(gid, uid);
+      return void message.reply(`💰 Coin bakiyen: **${bal}**`);
+    }
+
+    // ----------------- !market al / iade (rol) -----------------
     if (txt.startsWith('!market ')) {
       if (!gid || !message.guild) return;
       const parts = message.content.trim().split(/\s+/);
@@ -535,10 +555,11 @@ ${whyPremium}
       const member = message.member;
       const hasRole = member.roles.cache.has(roleId);
 
+      // Satın alma
       if (sub === 'al') {
         if (hasRole) return void message.reply('ℹ️ Bu role zaten sahipsin.');
 
-        // 🔒 Aynı anda yalnızca 1 market rolü (normal veya premium)
+        // Aynı anda sadece 1 market rolü kuralı
         const ownedMarketRoleId = getOwnedMarketRoleId(member);
         if (ownedMarketRoleId) {
           return void message.reply(
@@ -564,9 +585,9 @@ ${whyPremium}
         }
       }
 
+      // İade
       if (sub === 'iade') {
         if (!hasRole) return void message.reply('ℹ️ Bu role sahip değilsin, iade edilemez.');
-
         const refund = getRefundById(roleId);
         try {
           await member.roles.remove(roleId, 'Market iade');
@@ -584,7 +605,7 @@ ${whyPremium}
       }
     }
 
-    // --- !coin gonder
+    // ----------------- !coin gonder @kisi N -----------------
     if (txt.startsWith('!coin gonder') || txt.startsWith('!coin gönder')) {
       if (!gid) return;
       const target = message.mentions.users.first();
@@ -602,7 +623,7 @@ ${whyPremium}
       return void message.reply(`✅ <@${target.id}> kullanıcısına **${amt}** coin gönderdin. Yeni bakiyen: **${getPoints(gid, uid)}**`);
     }
 
-    // --- !coin-ver (owner)
+    // ----------------- !coin-ver (Owner) -----------------
     if (txt.startsWith('!coin-ver')) {
       if (!gid) return;
       if (!__MARKET__FALLBACK_OWNERS.includes(uid)) {
@@ -623,6 +644,7 @@ ${whyPremium}
   } catch (err) { console.error('[MARKET BLOK HATASI]', err); }
 });
 /* ==================== / MARKET BLOK BİTTİ ==================== */
+
 
 
 /* =======================================================================
