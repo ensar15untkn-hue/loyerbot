@@ -915,6 +915,171 @@ client.on('messageCreate', async (message) => {
 });
 /* ==================== / EVLİLİK BLOK BİTTİ ==================== */
 
+/* =======================================================================
+   >>>>>>>>>>>>  GÜNLÜK SES GÖREVİ (AUTO + STAT KOMUTU)  <<<<<<<<<<
+   Eşikler: 10 dk → +5 | 30 dk → +10 | 60 dk → +20  (günlük limit 1)
+   - Ödül otomatik verilir (kanala mesaj atmaz; istersen LOG kanalı ekleyebilirsin)
+   - XPBoost alanlar için 1.5x çarpan (yakın tam sayıya yuvarlanır)
+   - İlerleme ve durum için: !sesgorev
+======================================================================= */
+
+// === Ayarlar
+const VOICE_TIERS = [
+  { needSec: 3600, reward: 20, label: '60 dk → +20 coin' },
+  { needSec: 1800, reward: 10, label: '30 dk → +10 coin' },
+  { needSec:  600, reward:  5, label: '10 dk → +5 coin'  },
+];
+const VOICE_SWEEP_MS     = 30 * 1000; // aktif oturumları 30 sn’de bir kontrol et
+const VOICE_LOG_CHANNEL  = null;      // ör: '1268595919050244188' // log atmak istersen ID yaz
+
+// ——— XPBoost tespiti (kalıcı 1.5x). Başka yerde set ediyorsan bu getter yeter.
+const XPBOOST_MULTIPLIER = 1.5;
+function hasXpBoost(gid, uid) {
+  const bag = (globalThis.__XPBOOST_USERS__ ||= new Set()); // başka yerde !xpboost satın alınca buraya ekleniyor varsayıyoruz
+  return bag.has(`${gid}:${uid}`);
+}
+
+// ——— Depolar
+const vJoin      = (globalThis.__VJOIN__      ||= new Map()); // gid:uid -> startedAt(ms)
+const vDailySec  = (globalThis.__VDAYSEC__    ||= new Map()); // gid:uid:YYYY-MM-DD -> toplam saniye (tamamlanmış oturumlar)
+const vClaimed   = (globalThis.__VCLAIMED__   ||= new Map()); // gid:uid:YYYY-MM-DD -> true/false (ödül verildi mi)
+
+// ——— Yardımcılar
+function vKey(gid, uid) { return `${gid}:${uid}`; }
+function vDayKey(gid, uid, day) { return `${gid}:${uid}:${day}`; }
+function getDailySeconds(gid, uid, day) { return vDailySec.get(vDayKey(gid, uid, day)) || 0; }
+function setDailySeconds(gid, uid, day, sec) { vDailySec.set(vDayKey(gid, uid, day), Math.max(0, sec|0)); }
+function isClaimed(gid, uid, day) { return !!vClaimed.get(vDayKey(gid, uid, day)); }
+function setClaimed(gid, uid, day) { vClaimed.set(vDayKey(gid, uid, day), true); }
+
+function formatMin(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m} dk ${s} sn`;
+}
+
+// ——— Ödül hesapla (provisional total ile)
+async function maybeAward(guild, userId, provisionalTotalSec) {
+  if (!guild) return;
+  const gid = guild.id;
+  const day = todayTR();
+  if (isClaimed(gid, userId, day)) return;
+
+  // Ulaştığı en yüksek eşiği bul
+  const tier = VOICE_TIERS.find(t => provisionalTotalSec >= t.needSec);
+  if (!tier) return;
+
+  // XPBoost uygula
+  let reward = tier.reward;
+  if (hasXpBoost(gid, userId)) {
+    reward = Math.round(reward * XPBOOST_MULTIPLIER);
+  }
+
+  // Coin ver ve işaretle
+  addPoints(gid, userId, reward);
+  setClaimed(gid, userId, day);
+
+  // İsteğe bağlı LOG
+  if (VOICE_LOG_CHANNEL) {
+    const ch = await guild.channels.fetch(VOICE_LOG_CHANNEL).catch(()=>null);
+    if (ch?.isTextBased?.()) {
+      ch.send(`🎧 <@${userId}> günlük ses görevini tamamladı! Ödül: **+${reward}** coin (${tier.label}${hasXpBoost(gid,userId)?' • XPBoost 1.5x':''})`).catch(()=>{});
+    }
+  }
+}
+
+// ——— Ses durumu (join/leave/switch) ile kesinleşen oturumları biriktir
+client.on('voiceStateUpdate', async (oldState, newState) => {
+  try {
+    const guild = newState.guild || oldState.guild;
+    const gid = guild?.id;
+    const uid = newState.id || oldState.id;
+    if (!guild || !gid || !uid) return;
+
+    const day = todayTR();
+    const k = vKey(gid, uid);
+    const was = oldState.channelId;
+    const now = newState.channelId;
+
+    // Ayrılma ya da switch → süreyi güncelle
+    if (was && (!now || now !== was)) {
+      const startedAt = vJoin.get(k);
+      if (startedAt) {
+        const diffSec = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+        setDailySeconds(gid, uid, day, getDailySeconds(gid, uid, day) + diffSec);
+        vJoin.delete(k);
+
+        const provisional = getDailySeconds(gid, uid, day);
+        await maybeAward(guild, uid, provisional);
+      }
+    }
+
+    // Katılma ya da switch sonrası yeni oturum başlat
+    if (now && (!was || was !== now)) {
+      vJoin.set(k, Date.now());
+    }
+  } catch (e) {
+    console.error('[SES GÖREVİ voiceStateUpdate hata]', e);
+  }
+});
+
+// ——— Aktif oturumları 30 sn’de bir kontrol et (kullanıcı çıkmadan da ödül versin)
+setInterval(async () => {
+  try {
+    for (const [k, startedAt] of vJoin.entries()) {
+      const [gid, uid] = k.split(':');
+      const guild = client.guilds.cache.get(gid);
+      if (!guild) continue;
+
+      const day = todayTR();
+      const base = getDailySeconds(gid, uid, day);
+      const live = Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
+      const provisional = base + live;
+
+      await maybeAward(guild, uid, provisional);
+    }
+  } catch (e) {
+    console.error('[SES GÖREVİ sweep hata]', e);
+  }
+}, VOICE_SWEEP_MS);
+
+// ——— Durum / ilerleme komutu
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author.bot) return;
+    const gid = message.guild?.id; if (!gid) return;
+
+    const txt = (message.content || '').toLocaleLowerCase('tr').trim();
+    if (!(txt === '!sesgorev' || txt === '!sesgörev')) return;
+
+    const uid = message.author.id;
+    const day = todayTR();
+    const k = vKey(gid, uid);
+
+    const base = getDailySeconds(gid, uid, day);
+    let total = base;
+
+    // Hâlâ seste ise canlı süreyi ekleyerek göster
+    if (vJoin.has(k)) {
+      total += Math.max(0, Math.floor((Date.now() - vJoin.get(k)) / 1000));
+    }
+
+    const lines = [
+      `🎧 **Günlük Ses Görevi**`,
+      `Bugünkü süre: **${formatMin(total)}**`,
+      `Eşikler: ${VOICE_TIERS.map(t=>t.label).join(' • ')}`,
+      `Durum: ${isClaimed(gid, uid, day) ? '✅ ÖDÜL ALINDI' : '🕒 Devam ediyor'}` +
+              `${hasXpBoost(gid, uid) ? ' • XPBoost: **1.5x**' : ''}`,
+    ];
+
+    return void message.reply(lines.join('\n'));
+  } catch (e) {
+    console.error('[SES GÖREVİ !sesgorev hata]', e);
+    return void message.reply('⛔ Ses görevi durumunu gösterirken bir hata oldu.');
+  }
+});
+/* ==================== / GÜNLÜK SES GÖREVİ BİTTİ ==================== */
+
 
 // ====================== YAZI OYUNU ======================
 const activeTypingGames = new Map(); // cid -> { sentence, startedAt, timeoutId }
