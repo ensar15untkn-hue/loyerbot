@@ -1367,7 +1367,7 @@ client.on('messageCreate', async (message) => {
     const top = guildTop(gid, 10);
     if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
     const table = top.map((r, i) => `**${i + 1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
-    return message.reply(`🎯 **Sunucu Oyun Sıralaması** (Zar + Yazı)\n${table}`);
+    return message.reply(`🎯 **Sunucu Oyun Sıralaması**\n${table}`);
   }
   // ---------- /OYUN SIRALAMASI ----------
 
