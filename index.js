@@ -1314,7 +1314,7 @@ client.on('messageCreate', async (message) => {
 • \\!coin — Coin bakiyen.
 • \\!coin gonder @kisi <miktar> — Coin transferi.
 • (Owner) \\!coin-ver @kisi <miktar> — Sınırsız coin verme.
-+ • **Evlilik**: **Yüzük** (tek kullanımlık) — **150 coin** → "!yüzük al"
+• **Evlilik**: **Yüzük** (tek kullanımlık) — **150 coin** → "!yüzük al"
 
 
 ℹ️ **Notlar**
@@ -1434,17 +1434,53 @@ if (txt === '!görev' || txt === '!gorev' || txt === '!gunlukgorev') {
     return message.reply(`${progLines}\n\nℹ️ Uygun yeni ödül yok ya da bugünkü kademeleri bitirdin.`);
   }
 
-  addPoints(gid, uid, eligible.reward);
-  flags[eligible.key] = true;
-  gorevCooldown.set(cdKey, now + GOREV_COOLDOWN_MS);
+ // XPBoost alanlara 1.5x çarpan uygula
+const XP_PERM = (globalThis.__XP_PERM__ ||= new Set());
+const hasBoost = XP_PERM.has(`${gid}:${uid}`);
+const finalReward = hasBoost ? Math.floor(eligible.reward * 1.5) : eligible.reward;
 
-  return message.reply(
-    `✅ **Günlük görev ödülü verildi!** → **${eligible.label.split('→')[1].trim()}**\n` +
-    `📦 Toplam coin: **${(gamePoints.get(`${gid}:${uid}`) || 0)}**\n\n` +
-    `${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(GOREV_COOLDOWN_MS)}**`
-  );
+addPoints(gid, uid, finalReward);
+flags[eligible.key] = true;
+gorevCooldown.set(cdKey, now + GOREV_COOLDOWN_MS);
+
+
+  return void message.reply(
+  `✅ **Günlük görev ödülü verildi!** → **${eligible.label.split('→')[1].trim()}** ` +
+  (hasBoost ? '(x1.5 🔥)' : '') + `\n` + // sadece XPBoost sahiplerinde görünür
+  `📦 Toplam coin: **${(gamePoints.get(`${gid}:${uid}`) || 0)}**\n\n` +
+  `${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(GOREV_COOLDOWN_MS)}**`
+);
 }
 // ---------- /GÜNLÜK GÖREV SİSTEMİ ----------
+
+ // ---------- XPBOOST (KALICI 1.5x) ----------
+if (txt === '!xpboost') {
+  if (!gid) return;
+  const uid = message.author.id;
+  const key = `${gid}:${uid}`;
+  const PRICE = 200;
+  const bal = getPoints(gid, uid);
+
+  // XP boost kaydı
+  const XP_PERM = (globalThis.__XP_PERM__ ||= new Set());
+
+  if (XP_PERM.has(key)) {
+    return message.reply('⚡ Zaten kalıcı **XPBoost (1.5x)** sahibisin babuş!');
+  }
+
+  if (bal < PRICE) {
+    return message.reply(`⛔ Yetersiz coin! Gerekli: **${PRICE}**, senin bakiyen: **${bal}**`);
+  }
+
+  setPoints(gid, uid, bal - PRICE);
+  XP_PERM.add(key);
+
+  return message.reply(
+    `✅ **Kalıcı XPBoost (1.5x)** başarıyla satın alındı!\n` +
+    `🔥 Artık **günlük görev ödüllerin 1.5x** kazandırıyor.\n` +
+    `💰 Yeni bakiyen: **${getPoints(gid, uid)}**`
+  );
+}
 
   
   // ---------- ZAR (COIN’Lİ) ----------
