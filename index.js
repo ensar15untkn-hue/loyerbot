@@ -364,7 +364,7 @@ function guildTop(gid, limit = 10) {
 /* =======================================================================
    >>>>>>>>>>>>  MARKET SİSTEMİ • TEK PARÇA BLOK — ENTEGRASYON  <<<<<<<<<<
 ======================================================================= */
-const ROLE_PRICE = 80; // Normal market rolü fiyatı
+const ROLE_PRICE = 180; // Normal market rolü fiyatı
 
 // Normal market rolleri (sende zaten olan 5 ID)
 const MARKET_ROLE_IDS = [
@@ -381,7 +381,7 @@ const PREMIUM_ROLE_IDS = [
   '1433695886327808092',
   '1433915275345920130',
 ];
-const PREMIUM_ROLE_PRICE = 200;       // Premium fiyat
+const PREMIUM_ROLE_PRICE = 400;       // Premium fiyat
 const PREMIUM_REFUND_RATE = 0.20;     // Premium iade oranı (%20)
 
 // ——— Yardımcılar ———
@@ -467,7 +467,7 @@ ${whyPremium}
 • **!coin** — Mevcut coin’in
 • **!rollerimarket** — Tüm roller ve fiyatlar
 • **!market al <rolId>** — Rol satın alır
-• **!market iade <rolId>** — Rol iadesi (normal %50, premium %20 + “ikinci el olmuş”)
+• **!market iade <rolId>** — Rol iadesi (normal %30, premium %20 + “ikinci el olmuş”)
 • **!coin gonder @kisi <miktar>** — Coin transferi
 • (Owner) **!coin-ver @kisi <miktar>** — Sınırsız coin verme`
       );
@@ -632,7 +632,7 @@ ${whyPremium}
    • !yüzüğüm             → yüzüğün var mı bak
    • !evlen @kullanıcı    → butonlu evlilik teklifi (Kabul/Ret + GIF)
    • !eşim                → eşini göster
-   • !boşan eşim          → boşan (50 coin ücret) + 150 coin nafaka eşe ödenir
+   • !boşan eşim          → boşan (50 coin ücret) + 80 coin nafaka eşe ödenir
    • !evlilikler          → aktif evlilikleri listele (ilk 10)
 
    EVLİLİLERE ÖZEL OYUN:
@@ -643,7 +643,7 @@ ${whyPremium}
 // === Ayarlar (isteğine göre güncellendi)
 const RING_PRICE         = 150;            // yüzük fiyatı (tek kullanımlık)
 const DIVORCE_FEE        = 50;             // boşanma ücreti (boşanmayı başlatandan düşülür)
-const ALIMONY_AMOUNT     = 150;            // nafaka (başlatandan eşine transfer)
+const ALIMONY_AMOUNT     = 80;            // nafaka (başlatandan eşine transfer)
 const PROPOSAL_TIMEOUT   = 30_000;         // teklif geçerlilik süresi (ms)
 const MARRIAGE_CD_MS     = 5 * 60 * 1000;  // teklif cooldown (ms)
 
@@ -816,7 +816,7 @@ client.on('messageCreate', async (message) => {
       return message.reply(`💞 Eşin: <@${sp}> \n📅 Evlilik tarihi: **${since}**`);
     }
 
-    // ---- BOŞAN (50 coin + 150 nafaka)
+    // ---- BOŞAN (50 coin + 80 nafaka)
     if (txt === '!boşan eşim' || txt === '!bosan esim' || txt === '!boşan eşim' || txt === '!bosan eşim') {
       if (!isMarried(gid, uid)) return message.reply('Zaten bekârsın babuş.');
       const sp = spouseOf(gid, uid);
