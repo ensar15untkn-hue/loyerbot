@@ -916,14 +916,9 @@ client.on('messageCreate', async (message) => {
 /* ==================== / EVLİLİK BLOK BİTTİ ==================== */
 
 /* =======================================================================
-   >>>>>>>>>>>>  GÜNLÜK SES GÖREVİ (AUTO + STAT KOMUTU)  <<<<<<<<<<
-   Eşikler: 10 dk → +5 | 30 dk → +10 | 60 dk → +20  (günlük limit 1)
-   - Ödül otomatik verilir (kanala mesaj atmaz; istersen LOG kanalı ekleyebilirsin)
-   - XPBoost alanlar için 1.5x çarpan (yakın tam sayıya yuvarlanır)
-   - İlerleme ve durum için: !sesgorev
-======================================================================= */
+   >>>>>>>>>>>>  GÜNLÜK SES GÖREVİ (AUTO + KOMUTLU)  <<<<<<<<<<
+   ============================================================ */
 
-// === Ayarlar
 const VOICE_TIERS = [
   { needSec: 3600, reward: 20, label: '60 dk → +20 coin' },
   { needSec: 1800, reward: 10, label: '30 dk → +10 coin' },
@@ -932,20 +927,20 @@ const VOICE_TIERS = [
 const VOICE_SWEEP_MS     = 30 * 1000; // aktif oturumları 30 sn’de bir kontrol et
 const VOICE_LOG_CHANNEL  = null;      // ör: '1268595919050244188' // log atmak istersen ID yaz
 
-// ——— XPBoost tespiti (kalıcı 1.5x). Başka yerde set ediyorsan bu getter yeter.
+// XPBoost (1.5x)
 const XPBOOST_MULTIPLIER = 1.5;
 function hasXpBoost(gid, uid) {
-  const bag = (globalThis.__XPBOOST_USERS__ ||= new Set()); // başka yerde !xpboost satın alınca buraya ekleniyor varsayıyoruz
+  const bag = (globalThis.__XPBOOST_USERS__ ||= new Set());
   return bag.has(`${gid}:${uid}`);
 }
 
-// ——— Depolar
+// Depolar
 const vJoin      = (globalThis.__VJOIN__      ||= new Map()); // gid:uid -> startedAt(ms)
-const vDailySec  = (globalThis.__VDAYSEC__    ||= new Map()); // gid:uid:YYYY-MM-DD -> toplam saniye (tamamlanmış oturumlar)
-const vClaimed   = (globalThis.__VCLAIMED__   ||= new Map()); // gid:uid:YYYY-MM-DD -> true/false (ödül verildi mi)
+const vDailySec  = (globalThis.__VDAYSEC__    ||= new Map()); // gid:uid:YYYY-MM-DD -> toplam saniye
+const vClaimed   = (globalThis.__VCLAIMED__   ||= new Map()); // gid:uid:YYYY-MM-DD -> ödül alındı mı?
 
-// ——— Yardımcılar
-function vKey(gid, uid) { return `${gid}:${uid}`; }
+// Yardımcılar
+const vVoiceKey = (gid, uid) => `${gid}:${uid}`;
 function vDayKey(gid, uid, day) { return `${gid}:${uid}:${day}`; }
 function getDailySeconds(gid, uid, day) { return vDailySec.get(vDayKey(gid, uid, day)) || 0; }
 function setDailySeconds(gid, uid, day, sec) { vDailySec.set(vDayKey(gid, uid, day), Math.max(0, sec|0)); }
@@ -958,37 +953,31 @@ function formatMin(sec) {
   return `${m} dk ${s} sn`;
 }
 
-// ——— Ödül hesapla (provisional total ile)
+// Ödül hesapla
 async function maybeAward(guild, userId, provisionalTotalSec) {
   if (!guild) return;
   const gid = guild.id;
   const day = todayTR();
   if (isClaimed(gid, userId, day)) return;
 
-  // Ulaştığı en yüksek eşiği bul
   const tier = VOICE_TIERS.find(t => provisionalTotalSec >= t.needSec);
   if (!tier) return;
 
-  // XPBoost uygula
   let reward = tier.reward;
-  if (hasXpBoost(gid, userId)) {
-    reward = Math.round(reward * XPBOOST_MULTIPLIER);
-  }
+  if (hasXpBoost(gid, userId)) reward = Math.round(reward * XPBOOST_MULTIPLIER);
 
-  // Coin ver ve işaretle
   addPoints(gid, userId, reward);
   setClaimed(gid, userId, day);
 
-  // İsteğe bağlı LOG
   if (VOICE_LOG_CHANNEL) {
     const ch = await guild.channels.fetch(VOICE_LOG_CHANNEL).catch(()=>null);
     if (ch?.isTextBased?.()) {
-      ch.send(`🎧 <@${userId}> günlük ses görevini tamamladı! Ödül: **+${reward}** coin (${tier.label}${hasXpBoost(gid,userId)?' • XPBoost 1.5x':''})`).catch(()=>{});
+      ch.send(`🎧 <@${userId}> günlük ses görevini tamamladı! +${reward} coin (${tier.label}${hasXpBoost(gid,userId)?' • XPBoost 1.5x':''})`).catch(()=>{});
     }
   }
 }
 
-// ——— Ses durumu (join/leave/switch) ile kesinleşen oturumları biriktir
+// Ses durumu
 client.on('voiceStateUpdate', async (oldState, newState) => {
   try {
     const guild = newState.guild || oldState.guild;
@@ -997,11 +986,10 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
     if (!guild || !gid || !uid) return;
 
     const day = todayTR();
-    const k = vKey(gid, uid);
+    const k = vVoiceKey(gid, uid);
     const was = oldState.channelId;
     const now = newState.channelId;
 
-    // Ayrılma ya da switch → süreyi güncelle
     if (was && (!now || now !== was)) {
       const startedAt = vJoin.get(k);
       if (startedAt) {
@@ -1014,7 +1002,6 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
       }
     }
 
-    // Katılma ya da switch sonrası yeni oturum başlat
     if (now && (!was || was !== now)) {
       vJoin.set(k, Date.now());
     }
@@ -1023,7 +1010,7 @@ client.on('voiceStateUpdate', async (oldState, newState) => {
   }
 });
 
-// ——— Aktif oturumları 30 sn’de bir kontrol et (kullanıcı çıkmadan da ödül versin)
+// Aktif oturumları kontrol et
 setInterval(async () => {
   try {
     for (const [k, startedAt] of vJoin.entries()) {
@@ -1043,7 +1030,7 @@ setInterval(async () => {
   }
 }, VOICE_SWEEP_MS);
 
-// ——— Durum / ilerleme komutu
+// Durum komutu
 client.on('messageCreate', async (message) => {
   try {
     if (message.author.bot) return;
@@ -1054,12 +1041,11 @@ client.on('messageCreate', async (message) => {
 
     const uid = message.author.id;
     const day = todayTR();
-    const k = vKey(gid, uid);
+    const k = vVoiceKey(gid, uid);
 
     const base = getDailySeconds(gid, uid, day);
     let total = base;
 
-    // Hâlâ seste ise canlı süreyi ekleyerek göster
     if (vJoin.has(k)) {
       total += Math.max(0, Math.floor((Date.now() - vJoin.get(k)) / 1000));
     }
@@ -1079,6 +1065,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 /* ==================== / GÜNLÜK SES GÖREVİ BİTTİ ==================== */
+
 
 
 // ====================== YAZI OYUNU ======================
