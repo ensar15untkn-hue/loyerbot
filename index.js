@@ -1283,7 +1283,7 @@ client.on('messageCreate', async (message) => {
 • \\!zar üst / \\!zar alt — 1–3 alt, 4–6 üst. Kazan: **+3**, Kaybet: **-1**.  
   ↳ 2x üst üste kayıp: ek **-3** (o elde toplam **-4**, “Cooked” uyarısı).  
 • \\!zar bonus — Günlük **+15** zar bonusu.  
-• \\!oyunsıralama — Zar + Yazı **birleşik coin sıralaması**.  
+• \\!sıralama — Zar + Yazı **birleşik coin sıralaması**.  
 • \\!zar coin / \\!yazıcoin — Aynı birleşik kasadan ilk 10’u gösterir.
 
 💞 **Etkileşim**
@@ -1357,6 +1357,21 @@ client.on('messageCreate', async (message) => {
     return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
 
+  // ---------- OYUN SIRALAMASI ----------
+  if (
+    txt === '!sıralama' || txt === '!siralama' ||
+    txt === '!rank' || txt === '!top' ||
+    txt === '!oyunsıralama' || txt === '!oyunsiralama'
+  ) {
+    if (!gid) return;
+    const top = guildTop(gid, 10);
+    if (!top.length) return message.reply('🏁 Henüz oyun coin’i yok.');
+    const table = top.map((r, i) => `**${i + 1}.** <@${r.uid}> — **${r.pts}** coin`).join('\n');
+    return message.reply(`🎯 **Sunucu Oyun Sıralaması** (Zar + Yazı)\n${table}`);
+  }
+  // ---------- /OYUN SIRALAMASI ----------
+
+  
   // ---------- ZAR (COIN’Lİ) ----------
   if (txt.startsWith('!zar')) {
     if (txt.trim() === '!zar coin' || txt.trim() === '!zarcoin') {
