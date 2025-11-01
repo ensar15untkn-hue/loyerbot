@@ -2134,221 +2134,100 @@ async function handleOwoTest(message) {
   );
 }
 
-// ====================== PERSISTENCE + AUTO-SAVE + OWNER WIPE ======================
-const fs = require('fs/promises');
-const path = require('path');
-
-// ---- 0) Gerekli global map'ler (eksikse oluştur) ----
-const ensureMap = (name) => { globalThis[name] ||= new Map(); };
-ensureMap('gamePoints');
-
-ensureMap('__MARRIAGES__');
-ensureMap('__RINGS__');
-ensureMap('__MARRIED_AT__');
-ensureMap('__COUPLE_DAILY__');
-
-ensureMap('dailyTypingWins');
-ensureMap('dailyClaimYaziBonus');
-ensureMap('dailyClaimZarBonus');
-
-ensureMap('__DAILY_MSG__');
-ensureMap('__DAILY_FLAGS__');
-ensureMap('__GOREV_CD__');
-
-ensureMap('__VOICE_DAILY__');
-ensureMap('__VOICE_CD__');
-
-ensureMap('messageCount');
-ensureMap('totals');
-ensureMap('joinTimes');
-
-// ---- 1) OWNER listesi yoksa ek bir güvenlik ağı (senin dosyanda varsa bunu yok sayar) ----
-if (typeof OWNERS === 'undefined') {
-  globalThis.OWNERS = ['923263340325781515', '1122942626702827621'];
+// ====================== GÜVENLİ LOGIN & OTO-RETRY ======================
+const TOKEN = process.env.DISCORD_TOKEN || process.env.TOKEN || '';
+if (!TOKEN) {
+  console.error('⛔ DISCORD_TOKEN bulunamadı. .env dosyana DISCORD_TOKEN=... ekle!');
+  process.exit(1);
 }
+client.on('shardError', (e) => console.error('🔌 ShardError:', e));
+client.on('error', (e) => console.error('🧨 Client error:', e));
+client.on('warn', (m) => console.warn('⚠️ Warn:', m));
+client.on('shardDisconnect', (event, shardId) => {
+  console.warn(`🔌 Shard ${shardId} bağlantı koptu:`, event?.code, event?.reason || '');
+});
+client.on('shardReconnecting', (shardId) => console.log(`♻️ Shard ${shardId} yeniden bağlanıyor...`));
+client.on('shardReady', (shardId) => console.log(`✅ Shard ${shardId} hazır`));
+client.on('resume', () => console.log('🔁 Oturum devam ediyor (resume)'));
 
-// ---- 2) Disk yolu + durum bayrağı ----
-const STORE_PATH = path.resolve('./bot-store.json');
-let DIRTY = false;
-let SNAP = 0;
-function markDirty() { DIRTY = true; }
+// ====================== VERİLERİ OTOMATİK KAYDET & GERİ YÜKLE ======================
+const fs = require("fs");
+const path = require("path");
 
-// ---- 3) Serialize/Deserialize ----
-const asEntries = (m) => (m && m instanceof Map) ? [...m.entries()] : [];
-const toMap = (arr) => new Map(Array.isArray(arr) ? arr : []);
+// Kaydedilecek dosya yolu
+const SAVE_FILE = path.join(process.cwd(), "bot-store.json");
 
-function serializeStore() {
-  return JSON.stringify({
-    gamePoints: asEntries(globalThis.gamePoints),
-
-    marriages:       asEntries(globalThis.__MARRIAGES__),
-    rings:           asEntries(globalThis.__RINGS__),
-    marriedAt:       asEntries(globalThis.__MARRIED_AT__),
-    coupleDaily:     asEntries(globalThis.__COUPLE_DAILY__),
-
-    dailyTypingWins:     asEntries(globalThis.dailyTypingWins),
-    dailyClaimYaziBonus: asEntries(globalThis.dailyClaimYaziBonus),
-    dailyClaimZarBonus:  asEntries(globalThis.dailyClaimZarBonus),
-
-    __DAILY_MSG__:   asEntries(globalThis.__DAILY_MSG__),
-    __DAILY_FLAGS__: asEntries(globalThis.__DAILY_FLAGS__),
-    __GOREV_CD__:    asEntries(globalThis.__GOREV_CD__),
-
-    __VOICE_DAILY__: asEntries(globalThis.__VOICE_DAILY__),
-    __VOICE_CD__:    asEntries(globalThis.__VOICE_CD__),
-
-    _messageCount: asEntries(globalThis.messageCount),
-    _totals:       asEntries(globalThis.totals),
-    _joinTimes:    asEntries(globalThis.joinTimes),
-  });
-}
-
-async function atomicWrite(p, data) {
-  const tmp = p + '.tmp';
-  await fs.writeFile(tmp, data);
-  await fs.rename(tmp, p);
-}
-
-async function saveStore(force = false) {
-  if (!force && !DIRTY) return;
-  DIRTY = false;
-
-  const payload = serializeStore();
-  await atomicWrite(STORE_PATH, payload);
-
-  // 3 döner yedek
-  SNAP = (SNAP % 3) + 1;
-  await atomicWrite(`${STORE_PATH}.${SNAP}.bak`, payload);
-
-  console.log('📝 Store saved.');
-}
-
-async function loadStoreIfAny() {
+// JSON'a çevirip kaydet
+function saveData() {
   try {
-    const raw = await fs.readFile(STORE_PATH, 'utf8');
+    const data = {
+      gamePoints: Array.from(gamePoints.entries()),
+      marriages: Array.from(marriages.entries()),
+      rings: Array.from(rings.entries()),
+      xpboost: Array.from((globalThis.__XPBOOST_USERS__ || new Set()).values()),
+      dailyMsgCounter: Array.from((globalThis.__DAILY_MSG__ || new Map()).entries()),
+      dailyFlags: Array.from((globalThis.__DAILY_FLAGS__ || new Map()).entries()),
+      gorevCooldown: Array.from((globalThis.__GOREV_CD__ || new Map()).entries()),
+    };
+    fs.writeFileSync(SAVE_FILE, JSON.stringify(data, null, 2));
+    console.log("💾 Veriler kaydedildi.");
+  } catch (err) {
+    console.error("saveData hata:", err);
+  }
+}
+
+// JSON dosyasını okuyup geri yükle
+function loadData() {
+  try {
+    if (!fs.existsSync(SAVE_FILE)) return;
+    const raw = fs.readFileSync(SAVE_FILE, "utf8");
     const data = JSON.parse(raw);
 
-    if (data.gamePoints) globalThis.gamePoints = toMap(data.gamePoints);
+    if (data.gamePoints) for (const [k, v] of data.gamePoints) gamePoints.set(k, v);
+    if (data.marriages) for (const [k, v] of data.marriages) marriages.set(k, v);
+    if (data.rings) for (const [k, v] of data.rings) rings.set(k, v);
+    if (data.xpboost) globalThis.__XPBOOST_USERS__ = new Set(data.xpboost);
+    if (data.dailyMsgCounter) globalThis.__DAILY_MSG__ = new Map(data.dailyMsgCounter);
+    if (data.dailyFlags) globalThis.__DAILY_FLAGS__ = new Map(data.dailyFlags);
+    if (data.gorevCooldown) globalThis.__GOREV_CD__ = new Map(data.gorevCooldown);
 
-    if (data.marriages)       globalThis.__MARRIAGES__      = toMap(data.marriages);
-    if (data.rings)           globalThis.__RINGS__          = toMap(data.rings);
-    if (data.marriedAt)       globalThis.__MARRIED_AT__     = toMap(data.marriedAt);
-    if (data.coupleDaily)     globalThis.__COUPLE_DAILY__   = toMap(data.coupleDaily);
-
-    if (data.dailyTypingWins)     globalThis.dailyTypingWins     = toMap(data.dailyTypingWins);
-    if (data.dailyClaimYaziBonus) globalThis.dailyClaimYaziBonus = toMap(data.dailyClaimYaziBonus);
-    if (data.dailyClaimZarBonus)  globalThis.dailyClaimZarBonus  = toMap(data.dailyClaimZarBonus);
-
-    if (data.__DAILY_MSG__)   globalThis.__DAILY_MSG__   = toMap(data.__DAILY_MSG__);
-    if (data.__DAILY_FLAGS__) globalThis.__DAILY_FLAGS__ = toMap(data.__DAILY_FLAGS__);
-    if (data.__GOREV_CD__)    globalThis.__GOREV_CD__    = toMap(data.__GOREV_CD__);
-
-    if (data.__VOICE_DAILY__) globalThis.__VOICE_DAILY__ = toMap(data.__VOICE_DAILY__);
-    if (data.__VOICE_CD__)    globalThis.__VOICE_CD__    = toMap(data.__VOICE_CD__);
-
-    if (data._messageCount) globalThis.messageCount = toMap(data._messageCount);
-    if (data._totals)       globalThis.totals       = toMap(data._totals);
-    if (data._joinTimes)    globalThis.joinTimes    = toMap(data._joinTimes);
-
-    console.log('✅ Store loaded from disk.');
-  } catch {
-    console.log('ℹ️ Store not found, starting fresh.');
+    console.log("✅ Veriler yüklendi.");
+  } catch (err) {
+    console.error("loadData hata:", err);
   }
 }
-loadStoreIfAny();
 
-// ---- 4) addPoints kancası (coin her değiştiğinde save işaretle) ----
-if (typeof addPoints === 'function') {
-  const __origAddPoints = addPoints;
-  globalThis.addPoints = function (gid, uid, amt) {
-    const r = __origAddPoints(gid, uid, amt);
-    try { markDirty(); } catch {}
-    return r;
-  };
-} else {
-  // Yedek addPoints (projen yoksa diye)
-  globalThis.addPoints = function (gid, uid, amt) {
-    const k = `${gid}:${uid}`;
-    const cur = globalThis.gamePoints.get(k) || 0;
-    const next = Math.max(0, cur + (Number(amt) || 0));
-    globalThis.gamePoints.set(k, next);
-    markDirty();
-    return next;
-  };
-}
+// Başlangıçta yükle
+loadData();
 
-// ---- 5) Rol değişimi olursa (market al/iade) kirlet ----
-client.on('guildMemberUpdate', (oldM, newM) => {
+// 30 saniyede bir otomatik kayıt
+setInterval(saveData, 60 * 60 * 1000);
+
+// Bot kapanırken de kaydet
+process.on("SIGINT", () => { saveData(); process.exit(0); });
+process.on("SIGTERM", () => { saveData(); process.exit(0); });
+
+// Owner: !herşeyi sil komutu (verileri sıfırlamak için)
+client.on("messageCreate", async (msg) => {
   try {
-    // Basit fark kontrolü
-    if (oldM.roles.cache.size !== newM.roles.cache.size) markDirty();
-  } catch {}
-});
-
-// ---- 6) 1 saatte bir otomatik kayıt + kapanışta son kayıt ----
-const SAVE_INTERVAL_MS = 60 * 60 * 1000; // 1 saat
-setInterval(() => { saveStore().catch(() => {}); }, SAVE_INTERVAL_MS);
-
-for (const sig of ['SIGINT', 'SIGTERM']) {
-  process.on(sig, async () => {
-    try { await saveStore(true); } finally { process.exit(0); }
-  });
-}
-
-// ---- 7) OWNER komutu: !herseyisil (tüm veriyi temizle & anında kaydet) ----
-client.on('messageCreate', async (message) => {
-  try {
-    if (message.author.bot) return;
-    const uid = message.author.id;
-    const txt = (message.content || '').toLocaleLowerCase('tr').trim();
-
-    const isWipe =
-      txt === '!herseyisil' || txt === '!herşeyisil' ||
-      txt === '!her şeyi sil' || txt === '!herseyı sil' || txt === '!herşeyi sil';
-
-    if (!isWipe) return;
-
-    if (!Array.isArray(OWNERS) || !OWNERS.includes(uid)) {
-      return void message.reply('⛔ Bu komutu sadece bot sahipleri kullanabilir.');
+    if (msg.author.bot) return;
+    const txt = msg.content.toLowerCase().trim();
+    if (txt === "!herşeyi sil" || txt === "!herseyi sil") {
+      if (!OWNERS.includes(msg.author.id)) return msg.reply("⛔ Bu komutu sadece sahipler kullanabilir.");
+      gamePoints.clear();
+      marriages.clear();
+      rings.clear();
+      globalThis.__XPBOOST_USERS__?.clear?.();
+      globalThis.__DAILY_MSG__?.clear?.();
+      globalThis.__DAILY_FLAGS__?.clear?.();
+      globalThis.__GOREV_CD__?.clear?.();
+      fs.writeFileSync(SAVE_FILE, "{}");
+      return msg.reply("🧨 Tüm veriler temizlendi ve kayıt dosyası sıfırlandı.");
     }
-
-    const safeClear = (mName) => {
-      const m = globalThis[mName];
-      if (m && m instanceof Map) m.clear();
-    };
-
-    safeClear('gamePoints');
-
-    safeClear('__MARRIAGES__');
-    safeClear('__RINGS__');
-    safeClear('__MARRIED_AT__');
-    safeClear('__COUPLE_DAILY__');
-
-    safeClear('dailyTypingWins');
-    safeClear('dailyClaimYaziBonus');
-    safeClear('dailyClaimZarBonus');
-
-    safeClear('__DAILY_MSG__');
-    safeClear('__DAILY_FLAGS__');
-    safeClear('__GOREV_CD__');
-
-    safeClear('__VOICE_DAILY__');
-    safeClear('__VOICE_CD__');
-
-    safeClear('messageCount');
-    safeClear('totals');
-    safeClear('joinTimes');
-
-    DIRTY = true;
-    await saveStore(true);
-
-    return void message.reply('🧨 **Tüm veri başarıyla sıfırlandı** ve diske kaydedildi.');
   } catch (e) {
-    console.error('!herseyisil hata:', e);
-    return void message.reply('⛔ Sıfırlama sırasında bir hata oluştu.');
+    console.error("!herşeyi sil hata:", e);
   }
 });
-// ==================== /PERSISTENCE + AUTO-SAVE + OWNER WIPE ======================
 
 
 async function startBot() {
