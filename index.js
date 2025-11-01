@@ -1029,19 +1029,20 @@ const STEAL_CLEANUP_THRESHOLD = 50;
 const CLEAN_FETCH_LIMIT = 100;
 
 
-// Saat aralığı (İstanbul 16:00–00:59)
+// Saat aralığı (İstanbul 13:00–3:59)
 function isWithinIstanbulWindow() {
-  // İstanbul saatine göre UTC zamanı ayarlayıp çekelim:
+  // İstanbul saati: (UTC +3)
   const now = new Date();
   const utcHours = now.getUTCHours();
   const utcOffset = 3; // Türkiye UTC+3
   const h = (utcHours + utcOffset) % 24;
 
-  console.log("İstanbul saati:", h); // Test için log
+  // Test için log (isteğe bağlı)
+  console.log("İstanbul saati:", h);
 
-  return h >= 16 || h < 1; // 16:00 - 00:59 arası açık
+  // 13:00 (öğlen 1) - 03:59 (gece 4'e kadar) aktif
+  return (h >= 13 || h < 3);
 }
-
 
 
 let stealUseCounter = 0;
@@ -1370,6 +1371,80 @@ client.on('messageCreate', async (message) => {
     return message.reply(`🎯 **Sunucu Oyun Sıralaması**\n${table}`);
   }
   // ---------- /OYUN SIRALAMASI ----------
+
+// ---------- GÜNLÜK GÖREV SİSTEMİ (ENTEGRE) ----------
+if (txt === '!görev' || txt === '!gorev' || txt === '!gunlukgorev') {
+  const GOREV_COUNT_CHANNEL  = '1413929200817148104';
+  const GOREV_COMMAND_CHANNEL = '1433137197543854110';
+  const GOREV_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 saat
+  const DAILY_TIERS = [
+    { need: 200, reward: 20, key: 't200', label: '200 mesaj → +20 coin' },
+    { need: 100, reward: 10, key: 't100', label: '100 mesaj → +10 coin' },
+    { need:  10, reward:  1, key: 't10',  label: '10 mesaj → +1 coin'  },
+  ];
+
+  // Depolar
+  const dailyMsgCounter = (globalThis.__DAILY_MSG__   ||= new Map());
+  const dailyClaimFlags = (globalThis.__DAILY_FLAGS__ ||= new Map());
+  const gorevCooldown   = (globalThis.__GOREV_CD__    ||= new Map());
+
+  function gorevKeyDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
+  function gorevGetFlags(gid, uid, day) {
+    const k = gorevKeyDaily(gid, uid, day);
+    let obj = dailyClaimFlags.get(k);
+    if (!obj) { obj = { t10:false, t100:false, t200:false }; dailyClaimFlags.set(k, obj); }
+    return obj;
+  }
+  function gorevFmtCooldown(msLeft) {
+    const m = Math.ceil(msLeft / 60000);
+    const h = Math.floor(m / 60), mm = m % 60;
+    return h > 0 ? `${h}sa ${mm}dk` : `${mm}dk`;
+  }
+
+  if (message.channel?.id !== GOREV_COMMAND_CHANNEL)
+    return message.reply(`⛔ Bu komutu sadece <#${GOREV_COMMAND_CHANNEL}> kanalında kullanabilirsin.`);
+
+  const gid = message.guild?.id; if (!gid) return;
+  const uid = message.author.id;
+  const day = todayTR();
+  const k = gorevKeyDaily(gid, uid, day);
+  const count = dailyMsgCounter.get(k) || 0;
+  const flags = gorevGetFlags(gid, uid, day);
+
+  const cdKey = `${gid}:${uid}`;
+  const now = Date.now();
+  const cdUntil = gorevCooldown.get(cdKey) || 0;
+  const onCooldown = now < cdUntil;
+  const eligible = DAILY_TIERS.find(t => count >= t.need && !flags[t.key]);
+
+  const progLines = [
+    `📊 Bugünkü mesaj sayın (yalnızca <#${GOREV_COUNT_CHANNEL}>): **${count}**`,
+    `🎯 Kademeler:`,
+    `• 10 mesaj → +1 coin  ${flags.t10  ? '✅ alındı' : (count>=10  ? '🟢 hazır' : '⚪ bekliyor')}`,
+    `• 100 mesaj → +10 coin ${flags.t100 ? '✅ alındı' : (count>=100 ? '🟢 hazır' : '⚪ bekliyor')}`,
+    `• 200 mesaj → +20 coin ${flags.t200 ? '✅ alındı' : (count>=200 ? '🟢 hazır' : '⚪ bekliyor')}`,
+  ].join('\n');
+
+  if (onCooldown) {
+    const left = cdUntil - now;
+    return message.reply(`${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(left)}**`);
+  }
+
+  if (!eligible) {
+    return message.reply(`${progLines}\n\nℹ️ Uygun yeni ödül yok ya da bugünkü kademeleri bitirdin.`);
+  }
+
+  addPoints(gid, uid, eligible.reward);
+  flags[eligible.key] = true;
+  gorevCooldown.set(cdKey, now + GOREV_COOLDOWN_MS);
+
+  return message.reply(
+    `✅ **Günlük görev ödülü verildi!** → **${eligible.label.split('→')[1].trim()}**\n` +
+    `📦 Toplam coin: **${(gamePoints.get(`${gid}:${uid}`) || 0)}**\n\n` +
+    `${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(GOREV_COOLDOWN_MS)}**`
+  );
+}
+// ---------- /GÜNLÜK GÖREV SİSTEMİ ----------
 
   
   // ---------- ZAR (COIN’Lİ) ----------
