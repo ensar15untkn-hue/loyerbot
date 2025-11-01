@@ -1546,86 +1546,136 @@ client.on('messageCreate', async (message) => {
   }
   // ---------- /OYUN SIRALAMASI ----------
 
-// ---------- GÜNLÜK GÖREV SİSTEMİ (ENTEGRE) ----------
-if (txt === '!görev' || txt === '!gorev' || txt === '!gunlukgorev') {
-  const GOREV_COUNT_CHANNEL  = '1413929200817148104';
-  const GOREV_COMMAND_CHANNEL = '1433137197543854110';
-  const GOREV_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 saat
-  const DAILY_TIERS = [
-    { need: 200, reward: 20, key: 't200', label: '200 mesaj → +20 coin' },
-    { need: 100, reward: 10, key: 't100', label: '100 mesaj → +10 coin' },
-    { need:  10, reward:  1, key: 't10',  label: '10 mesaj → +1 coin'  },
-  ];
+// ====================== GÜNLÜK GÖREV SİSTEMİ — TAM BLOK ======================
 
-  // Depolar
-  const dailyMsgCounter = (globalThis.__DAILY_MSG__   ||= new Map());
-  const dailyClaimFlags = (globalThis.__DAILY_FLAGS__ ||= new Map());
-  const gorevCooldown   = (globalThis.__GOREV_CD__    ||= new Map());
+// 1) Kanal ve ayarlar
+const GOREV_COUNT_CHANNEL   = '1413929200817148104';   // MESAJLARI SAYAN kanal
+const GOREV_COMMAND_CHANNEL = '1433137197543854110';   // Komutun çalışacağı kanal
+const GOREV_COOLDOWN_MS = 3 * 60 * 60 * 1000; // 3 saat
 
-  function gorevKeyDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
-  function gorevGetFlags(gid, uid, day) {
-    const k = gorevKeyDaily(gid, uid, day);
-    let obj = dailyClaimFlags.get(k);
-    if (!obj) { obj = { t10:false, t100:false, t200:false }; dailyClaimFlags.set(k, obj); }
-    return obj;
-  }
-  function gorevFmtCooldown(msLeft) {
-    const m = Math.ceil(msLeft / 60000);
-    const h = Math.floor(m / 60), mm = m % 60;
-    return h > 0 ? `${h}sa ${mm}dk` : `${mm}dk`;
-  }
+const DAILY_TIERS = [
+  { need: 200, reward: 20, key: 't200', label: '200 mesaj → +20 coin' },
+  { need: 100, reward: 10, key: 't100', label: '100 mesaj → +10 coin' },
+  { need:  10, reward:  1, key: 't10',  label: '10 mesaj → +1 coin'  },
+];
 
-  if (message.channel?.id !== GOREV_COMMAND_CHANNEL)
-    return message.reply(`⛔ Bu komutu sadece <#${GOREV_COMMAND_CHANNEL}> kanalında kullanabilirsin.`);
+// 2) Depolar (global ve kalıcı)
+const dailyMsgCounter = (globalThis.__DAILY_MSG__   ||= new Map()); // gid:uid:YYYY-MM-DD -> count
+const dailyClaimFlags = (globalThis.__DAILY_FLAGS__ ||= new Map()); // gid:uid:YYYY-MM-DD -> {t10,t100,t200}
+const gorevCooldown   = (globalThis.__GOREV_CD__    ||= new Map()); // gid:uid -> ts(ms)
+const XP_PERM         = (globalThis.__XP_PERM__     ||= new Set()); // "gid:uid" alan kalıcı XPBoost sahipleri
 
-  const gid = message.guild?.id; if (!gid) return;
-  const uid = message.author.id;
-  const day = todayTR();
-  const k = gorevKeyDaily(gid, uid, day);
-  const count = dailyMsgCounter.get(k) || 0;
-  const flags = gorevGetFlags(gid, uid, day);
-
-  const cdKey = `${gid}:${uid}`;
-  const now = Date.now();
-  const cdUntil = gorevCooldown.get(cdKey) || 0;
-  const onCooldown = now < cdUntil;
-  const eligible = DAILY_TIERS.find(t => count >= t.need && !flags[t.key]);
-
-  const progLines = [
-    `📊 Bugünkü mesaj sayın (yalnızca <#${GOREV_COUNT_CHANNEL}>): **${count}**`,
-    `🎯 Kademeler:`,
-    `• 10 mesaj → +1 coin  ${flags.t10  ? '✅ alındı' : (count>=10  ? '🟢 hazır' : '⚪ bekliyor')}`,
-    `• 100 mesaj → +10 coin ${flags.t100 ? '✅ alındı' : (count>=100 ? '🟢 hazır' : '⚪ bekliyor')}`,
-    `• 200 mesaj → +20 coin ${flags.t200 ? '✅ alındı' : (count>=200 ? '🟢 hazır' : '⚪ bekliyor')}`,
-  ].join('\n');
-
-  if (onCooldown) {
-    const left = cdUntil - now;
-    return message.reply(`${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(left)}**`);
-  }
-
-  if (!eligible) {
-    return message.reply(`${progLines}\n\nℹ️ Uygun yeni ödül yok ya da bugünkü kademeleri bitirdin.`);
-  }
-
- // XPBoost alanlara 1.5x çarpan uygula
-const XP_PERM = (globalThis.__XP_PERM__ ||= new Set());
-const hasBoost = XP_PERM.has(`${gid}:${uid}`);
-const finalReward = hasBoost ? Math.floor(eligible.reward * 1.5) : eligible.reward;
-
-addPoints(gid, uid, finalReward);
-flags[eligible.key] = true;
-gorevCooldown.set(cdKey, now + GOREV_COOLDOWN_MS);
-
-
-  return void message.reply(
-  `✅ **Günlük görev ödülü verildi!** → **${eligible.label.split('→')[1].trim()}** ` +
-  (hasBoost ? '(x1.5 🔥)' : '') + `\n` + // sadece XPBoost sahiplerinde görünür
-  `📦 Toplam coin: **${(gamePoints.get(`${gid}:${uid}`) || 0)}**\n\n` +
-  `${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(GOREV_COOLDOWN_MS)}**`
-);
+// 3) Yardımcılar
+function todayTR() {
+  const now = new Date();
+  const ist = new Date(now.toLocaleString('tr-TR', { timeZone: 'Europe/Istanbul' }));
+  const y = ist.getFullYear();
+  const m = String(ist.getMonth() + 1).padStart(2, '0');
+  const d = String(ist.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
 }
-// ---------- /GÜNLÜK GÖREV SİSTEMİ ----------
+function gorevKeyDaily(gid, uid, day) { return `${gid}:${uid}:${day}`; }
+function gorevGetFlags(gid, uid, day) {
+  const k = gorevKeyDaily(gid, uid, day);
+  let obj = dailyClaimFlags.get(k);
+  if (!obj) { obj = { t10:false, t100:false, t200:false }; dailyClaimFlags.set(k, obj); }
+  return obj;
+}
+function gorevFmtCooldown(msLeft) {
+  const m = Math.ceil(msLeft / 60000);
+  const h = Math.floor(m / 60), mm = m % 60;
+  return h > 0 ? `${h}sa ${mm}dk` : `${mm}dk`;
+}
+
+// 4) SAYAÇ DİNLEYİCİSİ — sadece sayım kanalında artır
+client.on('messageCreate', (m) => {
+  try {
+    if (m.author.bot) return;
+    if (!m.guild) return;
+    if (m.channel?.id !== GOREV_COUNT_CHANNEL) return; // yalnızca belirlenen kanalda say
+
+    const k = gorevKeyDaily(m.guild.id, m.author.id, todayTR());
+    dailyMsgCounter.set(k, (dailyMsgCounter.get(k) || 0) + 1);
+  } catch (e) { console.error('[GÜNLÜK GÖREV sayaç hata]', e); }
+});
+
+// 5) KOMUT — !görev / !gorev / !gunlukgorev
+client.on('messageCreate', async (message) => {
+  try {
+    if (message.author.bot) return;
+    if (!message.guild) return;
+
+    const txt = (message.content || '').toLocaleLowerCase('tr').trim();
+    if (!(txt === '!görev' || txt === '!gorev' || txt === '!gunlukgorev')) return;
+
+    // Komut kanal kısıtı
+    if (message.channel?.id !== GOREV_COMMAND_CHANNEL) {
+      return void message.reply(`⛔ Bu komutu sadece <#${GOREV_COMMAND_CHANNEL}> kanalında kullanabilirsin.`);
+    }
+
+    const gid = message.guild.id;
+    const uid = message.author.id;
+    const day = todayTR();
+
+    const k = gorevKeyDaily(gid, uid, day);
+    const count = dailyMsgCounter.get(k) || 0;
+    const flags = gorevGetFlags(gid, uid, day);
+
+    // Cooldown
+    const cdKey = `${gid}:${uid}`;
+    const now = Date.now();
+    const cdUntil = gorevCooldown.get(cdKey) || 0;
+    const onCooldown = now < cdUntil;
+
+    // En yüksek uygun kademe
+    const eligible = DAILY_TIERS.find(t => count >= t.need && !flags[t.key]);
+
+    const progLines = [
+      `📊 Bugünkü mesaj sayın (yalnızca <#${GOREV_COUNT_CHANNEL}>): **${count}**`,
+      `🎯 Kademeler:`,
+      `• 10 mesaj → +1 coin  ${flags.t10  ? '✅ alındı' : (count>=10  ? '🟢 hazır' : '⚪ bekliyor')}`,
+      `• 100 mesaj → +10 coin ${flags.t100 ? '✅ alındı' : (count>=100 ? '🟢 hazır' : '⚪ bekliyor')}`,
+      `• 200 mesaj → +20 coin ${flags.t200 ? '✅ alındı' : (count>=200 ? '🟢 hazır' : '⚪ bekliyor')}`,
+    ].join('\n');
+
+    if (onCooldown) {
+      const left = cdUntil - now;
+      return void message.reply(`${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(left)}**`);
+    }
+
+    if (!eligible) {
+      return void message.reply(`${progLines}\n\nℹ️ Uygun yeni ödül yok ya da bugünkü kademeleri bitirdin.`);
+    }
+
+    // XPBoost (kalıcı) sahiplerine x1.5
+    const hasBoost = XP_PERM.has(`${gid}:${uid}`);
+    const finalReward = hasBoost ? Math.floor(eligible.reward * 1.5) : eligible.reward;
+
+    // addPoints fonksiyonun mevcut olmalı (oyun cüzdanına ekler)
+    addPoints(gid, uid, finalReward);
+
+    // Bayrak + cooldown
+    flags[eligible.key] = true;
+    gorevCooldown.set(cdKey, now + GOREV_COOLDOWN_MS);
+
+    // gamePoints Map'indeki güncel bakiye gösterimi
+    const bal = (globalThis.gamePoints?.get?.(`${gid}:${uid}`) || 0);
+
+    return void message.reply(
+      `✅ **Günlük görev ödülü verildi!** → **${eligible.label.split('→')[1].trim()}** ` +
+      (hasBoost ? '(x1.5 🔥)' : '') + `\n` +
+      `📦 Toplam coin: **${bal}**\n\n` +
+      `${progLines}\n\n⏳ Bir sonraki ödül için bekleme: **${gorevFmtCooldown(GOREV_COOLDOWN_MS)}**`
+    );
+
+  } catch (e) {
+    console.error('[GÜNLÜK GÖREV komut hata]', e);
+    return void message.reply('⛔ Günlük görev işleminde bir hata oluştu.');
+  }
+});
+
+// ==================== /GÜNLÜK GÖREV SİSTEMİ — TAM BLOK ====================
+
 
  // ---------- XPBOOST (KALICI 1.5x) ----------
 if (txt === '!xpboost') {
