@@ -1342,8 +1342,8 @@ client.on('messageCreate', async (message) => {
       return message.reply('⛔ Bugünün **Yazı bonusunu** zaten aldın. Yarın tekrar gel babuş!');
     }
     dailyClaimYaziBonus.set(k, true);
-    const total = addPoints(gid, uid, 30);
-    return message.reply(`✅ **+30** Yazı bonusu eklendi! Toplam oyun coin’in: **${total}**`);
+    const total = addPoints(gid, uid, 15);
+    return message.reply(`✅ **+15** Yazı bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
   if (txt === '!zar bonus' || txt === '!zarbonus' || txt === '!zar-bonus') {
     if (!gid) return;
@@ -1353,8 +1353,8 @@ client.on('messageCreate', async (message) => {
       return message.reply('⛔ Bugünün **Zar bonusunu** zaten aldın. Yarın yine şansını dene!');
     }
     dailyClaimZarBonus.set(k, true);
-    const total = addPoints(gid, uid, 30);
-    return message.reply(`✅ **+30** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
+    const total = addPoints(gid, uid, 15);
+    return message.reply(`✅ **+15** Zar bonusu eklendi! Toplam oyun coin’in: **${total}**`);
   }
 
   // ---------- ZAR (COIN’Lİ) ----------
